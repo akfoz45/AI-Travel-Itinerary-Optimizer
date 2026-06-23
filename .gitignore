@@ -51,3 +51,6 @@ build/
 **/ios/Flutter/app.flx
 **/ios/Flutter/flutter_export_environment.sh
 
+# JetBrains IDE
+.idea/
+*.iml
