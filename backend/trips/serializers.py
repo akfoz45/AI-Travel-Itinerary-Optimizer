@@ -65,6 +65,17 @@ class TripSerializer(serializers.ModelSerializer):
         ]
 
 class TripCreateSerializer(serializers.ModelSerializer):
+    preferences = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        write_only=True,
+        required=False
+    )
+
+    hotel = HotelSerializer(
+        write_only=True,
+        required=False
+    )
+
     class Meta:
         model = Trip
         fields = [
@@ -73,5 +84,37 @@ class TripCreateSerializer(serializers.ModelSerializer):
             "destination",
             "start_date",
             "end_date",
+            "preferences",
+            "hotel",
         ]
         read_only_fields = ["trip_id"]
+
+    def create(self, validated_data):
+        preferences_data = validated_data.pop("preferences", [])
+        hotel_data = validated_data.pop("hotel", None)
+
+        trip = Trip.objects.create(**validated_data)
+
+        for preference in preferences_data:
+            TripPreference.objects.create(
+                trip=trip,
+                preference=preference
+            )
+
+        if hotel_data:
+            Hotel.objects.create(
+                trip=trip,
+                **hotel_data
+            )
+
+        return trip
+    
+class DAyPlanCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DayPlan
+        fields = [
+            "plan_id",
+            "day_number",
+            "date",
+        ]
+        read_only_fields = ["plan_id"]
