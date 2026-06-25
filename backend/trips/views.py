@@ -41,6 +41,22 @@ class TripDetailAPIView(APIView):
         serializer = TripSerializer(trip)
         return Response(serializer.data)
     
+    def delete(self, request, trip_id):
+        try:
+            trip = Trip.objects.get(trip_id=trip_id)
+        except Trip.DoesNotExist:
+            return Response(
+                {"error": "Trip not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        trip.delete()
+
+        return Response(
+            {"message": "Trip deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+    
 class DayPlanCreateAPIView(APIView):
     def post(self, request, trip_id):
         try:
