@@ -14,7 +14,7 @@ from .serializers import (
 
 class TripListAPIView(APIView):
     def get(self, request):
-        trips = Trip.objects.all()
+        trips = Trip.objects.filter(user=request.user)
         serializer = TripSerializer(trips, many=True)
         return Response(serializer.data)
     
@@ -22,7 +22,7 @@ class TripListAPIView(APIView):
         serializer = TripCreateSerializer(data=request.data)
 
         if serializer.is_valid():
-            trip = serializer.save()
+            trip = serializer.save(user=request.user)
             response_serializer = TripSerializer(trip)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         
@@ -31,7 +31,10 @@ class TripListAPIView(APIView):
 class TripDetailAPIView(APIView):
     def get(self, request, trip_id):
         try:
-            trip = Trip.objects.get(trip_id=trip_id)
+            trip = Trip.objects.get(
+                trip_id=trip_id,
+                user=request.user
+                )
         except Trip.DoesNotExist:
             return Response(
                 {"error": "Trip not found."},
@@ -43,7 +46,10 @@ class TripDetailAPIView(APIView):
     
     def delete(self, request, trip_id):
         try:
-            trip = Trip.objects.get(trip_id=trip_id)
+            trip = Trip.objects.get(
+                trip_id=trip_id,
+                user=request.user
+            )
         except Trip.DoesNotExist:
             return Response(
                 {"error": "Trip not found."},
@@ -60,7 +66,10 @@ class TripDetailAPIView(APIView):
 class DayPlanCreateAPIView(APIView):
     def post(self, request, trip_id):
         try:
-            trip = Trip.objects.get(trip_id=trip_id)
+            trip = Trip.objects.get(
+                trip_id=trip_id,
+                user=request.user
+            )
         except Trip.DoesNotExist:
             return Response(
                 {"error": "Trip not found."},
@@ -72,25 +81,28 @@ class DayPlanCreateAPIView(APIView):
         if serializer.is_valid():
             day_plan = serializer.save(trip=trip)
             response_serializer = DayPlanSerializer(day_plan)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class RouteItemCreateAPIView(APIView):
     def post(self, request, plan_id):
         try:
-            day_plan = DayPlan.objects.get(plan_id=plan_id)
+            day_plan = DayPlan.objects.get(
+                plan_id=plan_id,
+                trip__user=request.user
+            )
         except DayPlan.DoesNotExist:
             return Response(
                 {"error": "Day plan not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
         serializer = RouteItemCreateSerializer(data=request.data)
 
         if serializer.is_valid():
             route_item = serializer.save(day_plan=day_plan)
             response_serializer = RouteItemSerializer(route_item)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Response(response_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

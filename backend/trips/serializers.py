@@ -80,7 +80,6 @@ class TripCreateSerializer(serializers.ModelSerializer):
         model = Trip
         fields = [
             "trip_id",
-            "user",
             "destination",
             "start_date",
             "end_date",
