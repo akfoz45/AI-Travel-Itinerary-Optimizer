@@ -1,9 +1,16 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Trip, DayPlan
-from .serializers import TripSerializer, TripCreateSerializer, DayPlanSerializer, DAyPlanCreateSerializer
 from rest_framework import status
+from .models import Trip, DayPlan, RouteItem
+from .serializers import (
+    TripSerializer, 
+    TripCreateSerializer, 
+    DayPlanSerializer, 
+    DayPlanCreateSerializer, 
+    RouteItemCreateSerializer, 
+    RouteItemSerializer,
+    )
 
 class TripListAPIView(APIView):
     def get(self, request):
@@ -44,7 +51,7 @@ class DayPlanCreateAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = DAyPlanCreateSerializer(data=request.data)
+        serializer = DayPlanCreateSerializer(data=request.data)
 
         if serializer.is_valid():
             day_plan = serializer.save(trip=trip)
@@ -52,3 +59,22 @@ class DayPlanCreateAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class RouteItemCreateAPIView(APIView):
+    def post(self, request, plan_id):
+        try:
+            day_plan = DayPlan.objects.get(plan_id=plan_id)
+        except DayPlan.DoesNotExist:
+            return Response(
+                {"error": "Day plan not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = RouteItemCreateSerializer(data=request.data)
+
+        if serializer.is_valid():
+            route_item = serializer.save(day_plan=day_plan)
+            response_serializer = RouteItemSerializer(route_item)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response(response_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

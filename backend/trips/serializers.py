@@ -109,7 +109,7 @@ class TripCreateSerializer(serializers.ModelSerializer):
 
         return trip
     
-class DAyPlanCreateSerializer(serializers.ModelSerializer):
+class DayPlanCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = DayPlan
         fields = [
@@ -118,3 +118,15 @@ class DAyPlanCreateSerializer(serializers.ModelSerializer):
             "date",
         ]
         read_only_fields = ["plan_id"]
+
+class RouteItemCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RouteItem
+        fields = [
+            "route_id",
+            "place",
+            "visit_order",
+            "arrival_time",
+            "departure_time",
+        ]
+        read_only_fields = ["route_id"]
