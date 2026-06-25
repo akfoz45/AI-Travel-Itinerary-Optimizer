@@ -129,3 +129,14 @@ class RouteItemCreateSerializer(serializers.ModelSerializer):
             "departure_time",
         ]
         read_only_fields = ["route_id"]
+
+class GenerateRouteSerializer(serializers.Serializer):
+    start_place = serializers.CharField(max_length=255)
+
+    categories = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        required=False
+    )
+
+    day_number = serializers.IntegerField()
+    date = serializers.DateField()

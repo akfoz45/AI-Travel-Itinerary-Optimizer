@@ -1,4 +1,4 @@
-def near_neighbor_route(graph, start_node):
+def nearest_neighbor_route(graph, start_node):
     """
     Generates a route using the nearest neighbor algorithm.
 
