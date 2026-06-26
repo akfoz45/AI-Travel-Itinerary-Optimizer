@@ -140,3 +140,6 @@ class GenerateRouteSerializer(serializers.Serializer):
 
     day_number = serializers.IntegerField()
     date = serializers.DateField()
+
+    start_time = serializers.TimeField(required=False)
+    end_time = serializers.TimeField(required=False)
