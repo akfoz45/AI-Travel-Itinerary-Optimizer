@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from datetime import time, timedelta
+from datetime import time
 from django.db import transaction
 
 from .models import Trip, DayPlan, RouteItem
@@ -16,11 +16,11 @@ from .serializers import (
     GenerateRouteSerializer,
     GenerateFullRouteSerializer,
     )
-
 from places.models import Place
+from route_optimizer.services import generate_full_route_for_trip
+from route_optimizer.time_estimator import estimate_travel_time_minutes, add_minutes_to_time
 from route_optimizer.graph_builder import build_weighted_graph
 from route_optimizer.nearest_neighbor import nearest_neighbor_route
-from route_optimizer.time_estimator import estimate_travel_time_minutes, add_minutes_to_time
 
 class TripListAPIView(APIView):
     def get(self, request):
@@ -282,128 +282,24 @@ class GenerateFullRouteAPIView(APIView):
         start_time = serializer.validated_data.get("start_time", time(9, 0))
         end_time = serializer.validated_data.get("end_time", time(18, 0))
 
-        places_queryset = Place.objects.all()
-
-        if categories:
-            places_queryset = places_queryset.filter(category__in=categories)
-
-        places = list(places_queryset)
-
-        if not places:
-            return Response(
-                {"error": "No places found for given categories."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        place_names = [place.place_name for place in places]
-
-        if start_place not in place_names:
-            return Response(
-                {
-                    "error": "Start place not found in selected places.",
-                    "available_places": place_names
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        graph = build_weighted_graph(places)
-        route = nearest_neighbor_route(graph, start_place)
-
-        total_days = (trip.end_date - trip.start_date).days + 1
-
-        if total_days <= 0:
-            return Response(
-                {"error": "Trip date range is invalid."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        place_map = {place.place_name: place for place in places}
-
-        route_index = 0
-        created_day_plans = []
-
-        total_distance_km = 0
-        total_travel_time_minutes = 0
-        total_visit_duration_minutes = 0
-        total_route_items = 0
-
         try:
-            with transaction.atomic():
-                existing_day_plans = DayPlan.objects.filter(trip=trip)
-                existing_day_plans.delete()
-
-                for day_offset in range(total_days):
-                    if route_index >= len(route):
-                        break
-
-                    current_date = trip.start_date + timedelta(days=day_offset)
-                    day_number = day_offset + 1
-
-                    day_plan = DayPlan.objects.create(
-                        trip=trip,
-                        day_number=day_number,
-                        date=current_date
-                    )
-
-                    current_time = start_time
-                    visit_order = 1
-                    route_items = []
-
-                    while route_index < len(route):
-                        place_name = route[route_index]
-                        place = place_map[place_name]
-
-                        if visit_order == 1:
-                            arrival_time = current_time
-                            distance_km = 0
-                            travel_minutes = 0
-                        else:
-                            previous_place_name = route[route_index - 1]
-                            distance_km = graph[previous_place_name][place_name]
-                            travel_minutes = estimate_travel_time_minutes(distance_km)
-                            arrival_time = add_minutes_to_time(current_time, travel_minutes)
-
-                        visit_duration = place.estimated_visit_duration or 60
-                        departure_time = add_minutes_to_time(arrival_time, visit_duration)
-
-                        if departure_time > end_time:
-                            break
-
-                        route_item = RouteItem.objects.create(
-                            day_plan=day_plan,
-                            place=place,
-                            visit_order=visit_order,
-                            arrival_time=arrival_time,
-                            departure_time=departure_time
-                        )
-
-                        route_items.append(route_item)
-
-                        total_distance_km += distance_km
-                        total_travel_time_minutes += travel_minutes
-                        total_visit_duration_minutes += visit_duration
-                        total_route_items += 1
-
-
-                        visit_order += 1
-                        current_time = departure_time
-                        route_index += 1
-
-                    if not route_items:
-                        day_plan.delete()
-                    else:
-                        created_day_plans.append(day_plan)
-
-                if not created_day_plans:
-                    raise ValueError("Daily time window is too short for selected places.")
-
+            result = generate_full_route_for_trip(
+                trip=trip,
+                start_place=start_place,
+                categories=categories,
+                start_time=start_time,
+                end_time=end_time,
+            )
         except ValueError as error:
             return Response(
                 {"error": str(error)},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        response_serializer = DayPlanSerializer(created_day_plans, many=True)
+        response_serializer = DayPlanSerializer(
+            result["day_plans"],
+            many=True
+        )
 
         return Response(
             {
@@ -412,20 +308,10 @@ class GenerateFullRouteAPIView(APIView):
                 "destination": trip.destination,
                 "start_date": trip.start_date,
                 "end_date": trip.end_date,
-                "total_days": total_days,
+                "total_days": result["total_days"],
                 "start_time": start_time,
                 "end_time": end_time,
-                "summary": {
-                    "generated_days": len(created_day_plans),
-                    "number_of_places": total_route_items,
-                    "total_distance_km": round(total_distance_km, 2),
-                    "total_travel_time_minutes": total_travel_time_minutes,
-                    "total_visit_duration_minutes": total_visit_duration_minutes,
-                    "total_plan_duration_minutes": (
-                        total_travel_time_minutes + total_visit_duration_minutes
-                    ),
-                    "unplanned_places": len(route) - route_index
-                },
+                "summary": result["summary"],
                 "day_plans": response_serializer.data
             },
             status=status.HTTP_201_CREATED
