@@ -143,3 +143,12 @@ class GenerateRouteSerializer(serializers.Serializer):
 
     start_time = serializers.TimeField(required=False)
     end_time = serializers.TimeField(required=False)
+
+
+class GenerateFullRouteSerializer(serializers.Serializer):
+    start_place = serializers.CharField(max_length=255)
+
+    categories = serializers.ListField(child=serializers.CharField(max_length=100), required=False)
+
+    start_time = serializers.TimeField(required=False)
+    end_time = serializers.TimeField(required=False)

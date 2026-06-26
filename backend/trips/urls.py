@@ -5,6 +5,7 @@ from .views import (
     DayPlanCreateAPIView,
     RouteItemCreateAPIView,
     GenerateRouteAPIView,
+    GenerateFullRouteAPIView,
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path("<int:trip_id>/day-plans/", DayPlanCreateAPIView.as_view(), name="day-plan-create"),
     path("day-plans/<int:plan_id>/route-items/", RouteItemCreateAPIView.as_view(), name="route-item-create"),
     path("<int:trip_id>/generate-route/", GenerateRouteAPIView.as_view(), name="generate-route"),
+    path("<int:trip_id>/generate-full-route/", GenerateFullRouteAPIView.as_view(), name="generate-full-route"),
 ]
