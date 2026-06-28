@@ -153,6 +153,10 @@ def generate_full_route_for_trip(trip, start_place, categories, start_time, end_
             visit_order = 1
             route_items = []
 
+            daily_distance_km = 0
+            daily_travel_time_minutes = 0
+            daily_visit_duration_minutes = 0
+
             while route_index < len(route):
                 place_name = route[route_index]
                 place = place_map[place_name]
@@ -202,24 +206,46 @@ def generate_full_route_for_trip(trip, start_place, categories, start_time, end_
                 total_visit_duration_minutes += visit_duration
                 total_route_items += 1
 
+                daily_distance_km += distance_km
+                daily_travel_time_minutes += travel_minutes
+                daily_visit_duration_minutes += visit_duration
+
                 visit_order += 1
                 current_time = departure_time
                 route_index += 1
 
+            daily_return_to_hotel_distance_km = 0
+            daily_return_to_hotel_minutes = 0
+
             if route_items and hotel:
                 last_place = route_items[-1].place
-                return_distance_km = calculate_distance_from_place_to_hotel(
+                daily_return_to_hotel_distance_km = calculate_distance_from_place_to_hotel(
                     last_place,
                     hotel
                 )
-                return_minutes = estimate_travel_time_minutes(return_distance_km)
+                daily_return_to_hotel_minutes = estimate_travel_time_minutes(
+                    daily_return_to_hotel_distance_km
+                )
 
-                total_return_to_hotel_distance_km += return_distance_km
-                total_return_to_hotel_minutes += return_minutes
+                total_return_to_hotel_distance_km += daily_return_to_hotel_distance_km
+                total_return_to_hotel_minutes += daily_return_to_hotel_minutes
 
             if not route_items:
                 day_plan.delete()
             else:
+                day_plan.daily_summary = {
+                    "number_of_places": len(route_items),
+                    "total_distance_km": round(daily_distance_km, 2),
+                    "travel_time_minutes": daily_travel_time_minutes,
+                    "visit_duration_minutes": daily_visit_duration_minutes,
+                    "return_to_hotel_distance_km": round(daily_return_to_hotel_distance_km, 2),
+                    "return_to_hotel_minutes": daily_return_to_hotel_minutes,
+                    "total_day_duration_minutes": (
+                        daily_travel_time_minutes
+                        + daily_visit_duration_minutes
+                        + daily_return_to_hotel_minutes
+                    ),
+               }
                 created_day_plans.append(day_plan)
 
         if not created_day_plans:

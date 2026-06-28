@@ -26,6 +26,7 @@ class RouteItemSerializer(serializers.ModelSerializer):
 
 class DayPlanSerializer(serializers.ModelSerializer):
     route_items = RouteItemSerializer(many=True, read_only=True)
+    daily_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = DayPlan
@@ -33,8 +34,12 @@ class DayPlanSerializer(serializers.ModelSerializer):
             "plan_id",
             "day_number",
             "date",
+            "daily_summary",
             "route_items",
         ]
+    
+    def get_daily_summary(self, obj):
+        return getattr(obj, "daily_summary", None)
 
 class HotelSerializer(serializers.ModelSerializer):
     class Meta:
