@@ -15,7 +15,7 @@ class PlaceListAPIView(APIView):
             places = places.filter(category__iexact=category)
 
         if min_rating:
-            min_rating = min_rating.filter(rating__gte=min_rating)
+            places = places.filter(rating__gte=min_rating)
 
         serializer = PlaceSerializer(places, many=True)
         return Response(serializer.data)

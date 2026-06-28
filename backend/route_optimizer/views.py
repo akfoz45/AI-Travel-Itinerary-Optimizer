@@ -19,7 +19,7 @@ class NearestRouteAPIView(APIView):
 
         if not start_node:
             return Response(
-                {"error": "Start placeis required. Use ?start=Place Name"},
+                {"error": "Start place is required. Use ?start=Place Name"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         

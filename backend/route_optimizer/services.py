@@ -267,8 +267,6 @@ def generate_full_route_for_trip(trip, start_place, categories, start_time, end_
         "start_place_source": "hotel_nearest_place" if not start_place and hotel else "user_input",
         "return_to_hotel_distance_km": round(total_return_to_hotel_distance_km, 2),
         "return_to_hotel_minutes": total_return_to_hotel_minutes,
-        "total_plan_duration_minutes": (total_travel_time_minutes + total_visit_duration_minutes + total_return_to_hotel_minutes
-        ),
     }
 
     return {
@@ -402,7 +400,7 @@ def generate_day_route_for_trip(trip, start_place, categories, day_number, date,
         "total_plan_duration_minutes": (total_travel_time_minutes + total_visit_duration_minutes),
         "number_of_places": len(route_items),
         "unplanned_place_count": len(unplanned_place_names),
-        "unplanned_place": unplanned_place_names,
+        "unplanned_places": unplanned_place_names,
         "hotel_used_as_start": hotel.name if hotel else None,
         "selected_start_place": matched_start_place,
         "start_place_source": "hotel_nearest_place" if not start_place and hotel else "user_input",
@@ -434,7 +432,7 @@ def calculate_distance_from_hotel_to_place(hotel, place):
     )
 
 
-def calculate_distance_from_place_to_hotel(hotel, place):
+def calculate_distance_from_place_to_hotel(place, hotel):
     return calculate_distance_km(
         place.latitude,
         place.longitude,
