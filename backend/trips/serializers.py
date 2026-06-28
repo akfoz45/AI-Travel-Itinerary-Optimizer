@@ -131,7 +131,11 @@ class RouteItemCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ["route_id"]
 
 class GenerateRouteSerializer(serializers.Serializer):
-    start_place = serializers.CharField(max_length=255)
+    start_place = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True
+        )
 
     categories = serializers.ListField(
         child=serializers.CharField(max_length=100),
@@ -146,9 +150,16 @@ class GenerateRouteSerializer(serializers.Serializer):
 
 
 class GenerateFullRouteSerializer(serializers.Serializer):
-    start_place = serializers.CharField(max_length=255)
+    start_place = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True
+        )
 
-    categories = serializers.ListField(child=serializers.CharField(max_length=100), required=False)
+    categories = serializers.ListField(
+        child=serializers.CharField(max_length=100), 
+        required=False
+        )
 
     start_time = serializers.TimeField(required=False)
     end_time = serializers.TimeField(required=False)
