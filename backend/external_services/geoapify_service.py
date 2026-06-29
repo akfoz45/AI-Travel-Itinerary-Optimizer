@@ -58,7 +58,6 @@ class GeoapifyService:
         radius=10000,
         limit=20,
     ):
-        
         if categories is None:
             categories = ["tourism.sights"]
 
@@ -76,6 +75,97 @@ class GeoapifyService:
 
         return data.get("features", [])
 
+    def map_geoapify_category_to_internal_category(self, categories):
+        if not categories:
+            return "Other"
+
+        category_text = " ".join(categories).lower()
+
+        if "heritage" in category_text or "historic" in category_text:
+            return "History"
+
+        if "natural" in category_text or "nature" in category_text:
+            return "Nature"
+
+        if "museum" in category_text:
+            return "Museum"
+
+        if "religion" in category_text or "place_of_worship" in category_text:
+            return "Religious"
+
+        if "restaurant" in category_text or "catering" in category_text:
+            return "Food"
+
+        if "tourism" in category_text or "sights" in category_text:
+            return "Tourism"
+
+        return "Other"
+
+    def estimate_visit_duration_by_category(self, category):
+        duration_map = {
+            "History": 120,
+            "Nature": 180,
+            "Tourism": 90,
+            "Museum": 120,
+            "Religious": 60,
+            "Food": 90,
+            "Other": 60,
+        }
+
+        return duration_map.get(category, 60)
+
+    def normalize_place(self, feature):
+        properties = feature.get("properties", {})
+        geometry = feature.get("geometry", {})
+
+        coordinates = geometry.get("coordinates", [])
+
+        if len(coordinates) < 2:
+            return None
+
+        longitude = coordinates[0]
+        latitude = coordinates[1]
+
+        name = properties.get("name")
+
+        if not name:
+            name = properties.get("formatted")
+
+        if not name:
+            return None
+
+        geoapify_categories = properties.get("categories", [])
+
+        internal_category = self.map_geoapify_category_to_internal_category(
+            geoapify_categories
+        )
+
+        return {
+            "place_name": name,
+            "latitude": latitude,
+            "longitude": longitude,
+            "category": internal_category,
+            "rating": None,
+            "estimated_visit_duration": self.estimate_visit_duration_by_category(
+                internal_category
+            ),
+            "source": "geoapify",
+            "source_place_id": properties.get("place_id"),
+            "formatted_address": properties.get("formatted"),
+            "raw_categories": geoapify_categories,
+        }
+
+    def normalize_places(self, features):
+        normalized_places = []
+
+        for feature in features:
+            normalized_place = self.normalize_place(feature)
+
+            if normalized_place:
+                normalized_places.append(normalized_place)
+
+        return normalized_places
+
     def search_places_by_city(
         self,
         city_name,
@@ -83,7 +173,6 @@ class GeoapifyService:
         radius=10000,
         limit=20,
     ):
-
         city = self.get_city_coordinates(city_name)
 
         places = self.get_places_by_coordinates(
@@ -94,7 +183,12 @@ class GeoapifyService:
             limit=limit,
         )
 
+        normalized_places = self.normalize_places(places)
+
         return {
             "city": city,
-            "places": places,
+            "places": normalized_places,
+            "raw_place_count": len(places),
+            "normalized_place_count": len(normalized_places),
         }
+    
