@@ -27,6 +27,7 @@ urlpatterns = [
     path("api/places/", include("places.urls")),
     path("api/trips/", include("trips.urls")),
     path("api/route-optimizer/", include("route_optimizer.urls")),
+    path("api/external/", include("external_services.urls")),
 
 
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),

@@ -16,6 +16,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
+GEOAPIFY_BASE_URL = "https://api.geoapify.com"
+
+#OPENTRIPMAP_API_KEY = os.getenv("OPENTRIPMAP_API_KEY")
+#OPENTRIPMAP_BASE_URL = "https://api.opentripmap.com/0.1/en"
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
