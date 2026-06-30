@@ -204,10 +204,12 @@ class GeoapifyImportPlaceAPIView(APIView):
                 "geoapify_categories": result.get("geoapify_categories"),
                 "raw_place_count": result["raw_place_count"],
                 "normalized_place_count": result["normalized_place_count"],
+                "filtered_out_count": result.get("filtered_out_count"),
                 "imported_count": len(imported_places),
                 "skipped_count": len(skipped_places),
                 "imported_places": imported_places,
-                "skipped_places": skipped_places
+                "skipped_places": skipped_places,
+                "filtered_out_places": result.get("filtered_out_places"),
             },
             status=status.HTTP_201_CREATED
         )
