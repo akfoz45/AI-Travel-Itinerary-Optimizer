@@ -175,10 +175,12 @@ class GeoapifyService:
     ):
         city = self.get_city_coordinates(city_name)
 
+        geoapify_categories = self.map_internal_categories_to_geoapify_categories(categories)
+
         places = self.get_places_by_coordinates(
             latitude=city["latitude"],
             longitude=city["longitude"],
-            categories=categories,
+            categories=geoapify_categories,
             radius=radius,
             limit=limit,
         )
@@ -192,3 +194,35 @@ class GeoapifyService:
             "normalized_place_count": len(normalized_places),
         }
     
+    def map_internal_categories_to_geoapify_categories(self, categories):
+        if not categories:
+            return ["tourism.sights"]
+
+        category_map = {
+            "history": ["heritage", "tourism.sights"],
+            "historic": ["heritage", "tourism.sights"],
+            "nature": ["natural", "tourism.sights"],
+            "natural": ["natural"],
+            "tourism": ["tourism.sights"],
+            "sight": ["tourism.sights"],
+            "sights": ["tourism.sights"],
+            "museum": ["entertainment.museum", "tourism.sights"],
+            "religious": ["religion", "tourism.sights"],
+            "religion": ["religion"],
+            "food": ["catering.restaurant"],
+            "restaurant": ["catering.restaurant"],
+        }
+
+        geoapify_categories = []
+
+        for category in categories:
+            normalized_category = category.strip().lower()
+
+            mapped_categories = category_map.get(
+                normalized_category,
+                ["tourism.sights"]
+            )
+
+            geoapify_categories.extend(mapped_categories)
+
+        return list(set(geoapify_categories))

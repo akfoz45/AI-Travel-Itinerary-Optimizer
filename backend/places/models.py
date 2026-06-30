@@ -8,6 +8,8 @@ class Place(models.Model):
     category = models.CharField(max_length=100, blank=True, null=True)
     rating = models.FloatField(blank=True, null=True)
     estimated_visit_duration = models.IntegerField(blank=True, null=True)
+    source = models.CharField(max_length=50, default="manual")
+    source_place_id = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         managed = False

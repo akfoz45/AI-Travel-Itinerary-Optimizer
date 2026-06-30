@@ -9,6 +9,8 @@ class PlaceAdmin(admin.ModelAdmin):
         "category",
         "rating",
         "estimated_visit_duration",
+        "source",
+        "source_place_id"
     )
-    search_fields = ("place_name", "category")
-    list_filter = ("category",)
+    search_fields = ("place_name", "category", "source", "source_place_id",)
+    list_filter = ("category", "source",)

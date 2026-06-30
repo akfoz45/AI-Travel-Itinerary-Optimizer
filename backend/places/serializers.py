@@ -12,4 +12,6 @@ class PlaceSerializer(serializers.ModelSerializer):
             "category",
             "rating",
             "estimated_visit_duration",
+            "source",
+            "source_place_id",
         ]
