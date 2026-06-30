@@ -1,11 +1,17 @@
-# Postman API Test Checklist
+# Postman Test Checklist
 
-This checklist is used to verify the REST API endpoints of the **AI-Powered Travel Planner** backend.
+This checklist is used to verify the main backend API flows of the AI-Powered Travel Planner project.
 
-## Base URL
+Base URL for local development:
 
 ```http
 http://127.0.0.1:8000
+```
+
+Protected endpoints require JWT authentication:
+
+```http
+Authorization: Bearer <access_token>
 ```
 
 ---
@@ -20,7 +26,7 @@ http://127.0.0.1:8000
 POST /api/auth/register/
 ```
 
-### Request Body
+### Body
 
 ```json
 {
@@ -30,25 +36,18 @@ POST /api/auth/register/
 }
 ```
 
-### Expected Response
-
-```json
-{
-  "message": "User registered successfully."
-}
-```
-
-### Checklist
+### Expected Result
 
 ```text
-[ ] User can register successfully
-[ ] Duplicate username gives validation error
-[ ] Password is not returned in response
+[ ] User is created successfully
+[ ] Response includes user id, username, and email
+[ ] Password is not returned in the response
+[ ] Duplicate username is rejected
 ```
 
 ---
 
-## 1.2 Obtain JWT Token
+## 1.2 Get JWT Token
 
 ### Endpoint
 
@@ -56,7 +55,7 @@ POST /api/auth/register/
 POST /api/auth/token/
 ```
 
-### Request Body
+### Body
 
 ```json
 {
@@ -65,21 +64,12 @@ POST /api/auth/token/
 }
 ```
 
-### Expected Response
-
-```json
-{
-  "refresh": "...",
-  "access": "..."
-}
-```
-
-### Checklist
+### Expected Result
 
 ```text
-[ ] Valid username/password returns access token
-[ ] Valid username/password returns refresh token
-[ ] Wrong password returns 401 Unauthorized
+[ ] Response includes access token
+[ ] Response includes refresh token
+[ ] Invalid credentials return an error
 ```
 
 ---
@@ -92,7 +82,7 @@ POST /api/auth/token/
 POST /api/auth/token/refresh/
 ```
 
-### Request Body
+### Body
 
 ```json
 {
@@ -100,11 +90,11 @@ POST /api/auth/token/refresh/
 }
 ```
 
-### Checklist
+### Expected Result
 
 ```text
-[ ] Valid refresh token returns new access token
-[ ] Invalid refresh token returns error
+[ ] New access token is returned
+[ ] Invalid refresh token is rejected
 ```
 
 ---
@@ -119,12 +109,16 @@ POST /api/auth/token/refresh/
 GET /api/places/
 ```
 
-### Checklist
+### Expected Result
 
 ```text
-[ ] Places endpoint returns 200 OK
-[ ] Response is a list
-[ ] Each place has place_id, place_name, latitude, longitude, category, rating, estimated_visit_duration
+[ ] Places are returned successfully
+[ ] Each place includes place_id
+[ ] Each place includes place_name
+[ ] Each place includes latitude and longitude
+[ ] Each place includes category
+[ ] Each place includes source
+[ ] Each place includes source_place_id
 ```
 
 ---
@@ -134,14 +128,21 @@ GET /api/places/
 ### Endpoint
 
 ```http
-GET /api/places/?category=History
+GET /api/places/?category=Nature
 ```
 
-### Checklist
+### Expected Result
 
 ```text
-[ ] Only History places are returned
-[ ] Empty result does not crash the API
+[ ] Only Nature places are returned
+[ ] Category filtering is case-insensitive
+```
+
+Test also:
+
+```http
+GET /api/places/?category=nature
+GET /api/places/?category=NATURE
 ```
 
 ---
@@ -154,26 +155,16 @@ GET /api/places/?category=History
 GET /api/places/?min_rating=4
 ```
 
-### Checklist
+### Expected Result
 
 ```text
 [ ] Only places with rating >= 4 are returned
-[ ] Invalid rating value is handled properly
+[ ] Places with rating = null are not returned for min_rating filter
 ```
 
 ---
 
 # 3. Trip Tests
-
-All trip endpoints require JWT authentication.
-
-## Authorization Header
-
-```http
-Authorization: Bearer <access_token>
-```
-
----
 
 ## 3.1 Create Trip
 
@@ -183,31 +174,26 @@ Authorization: Bearer <access_token>
 POST /api/trips/
 ```
 
-### Request Body
+### Body
 
 ```json
 {
-  "destination": "Montenegro",
+  "destination": "Kotor, Montenegro",
   "start_date": "2026-04-10",
-  "end_date": "2026-04-13",
-  "preferences": ["Nature", "History"],
-  "hotel": {
-    "name": "Kotor Hotel",
-    "latitude": 42.4247,
-    "longitude": 18.7712,
-    "rating": 4.5
-  }
+  "end_date": "2026-04-12",
+  "preferences": ["nature", "history"]
 }
 ```
 
-### Checklist
+### Expected Result
 
 ```text
 [ ] Trip is created successfully
-[ ] Trip is linked to authenticated user
-[ ] Preferences are created
-[ ] Hotel is created
-[ ] User field is not required in request body
+[ ] Trip is linked to the authenticated user
+[ ] Preferences are created successfully
+[ ] Response includes trip_id
+[ ] Response includes destination
+[ ] Response includes start_date and end_date
 ```
 
 ---
@@ -220,17 +206,16 @@ POST /api/trips/
 GET /api/trips/
 ```
 
-### Checklist
+### Expected Result
 
 ```text
 [ ] Only authenticated user's trips are returned
 [ ] Other users' trips are not visible
-[ ] Response contains preferences, day_plans, hotels
 ```
 
 ---
 
-## 3.3 Get Trip Detail
+## 3.3 Retrieve Trip Detail
 
 ### Endpoint
 
@@ -238,12 +223,14 @@ GET /api/trips/
 GET /api/trips/{trip_id}/
 ```
 
-### Checklist
+### Expected Result
 
 ```text
-[ ] User can view own trip
-[ ] User cannot view another user's trip
-[ ] Invalid trip_id returns 404
+[ ] Trip detail is returned successfully
+[ ] Preferences are included
+[ ] Hotels are included if available
+[ ] Day plans are included if available
+[ ] Route items are included if available
 ```
 
 ---
@@ -256,115 +243,664 @@ GET /api/trips/{trip_id}/
 DELETE /api/trips/{trip_id}/
 ```
 
-### Checklist
+### Expected Result
 
 ```text
-[ ] User can delete own trip
-[ ] User cannot delete another user's trip
-[ ] Deleted trip disappears from trip list
-[ ] Related day plans, route items, preferences and hotels are deleted by cascade
+[ ] Trip is deleted successfully
+[ ] Related trip preferences are deleted
+[ ] Related day plans are deleted
+[ ] Related route items are deleted
+[ ] Other users cannot delete this trip
 ```
 
 ---
 
-# 4. Manual Day Plan Tests
+# 4. Geoapify City Test
 
-## 4.1 Create Day Plan
+## 4.1 Get City Coordinates
 
 ### Endpoint
 
 ```http
-POST /api/trips/{trip_id}/day-plans/
+GET /api/external/geoapify/city/?name=Kotor, Montenegro
 ```
 
-### Request Body
+### Expected Result
+
+```text
+[ ] City coordinates are returned
+[ ] Response includes latitude
+[ ] Response includes longitude
+[ ] Response includes formatted city name
+```
+
+### Example Expected Fields
 
 ```json
 {
-  "day_number": 1,
-  "date": "2026-04-10"
+  "city": "Kotor, Montenegro",
+  "formatted": "Kotor, Montenegro",
+  "latitude": 42.425,
+  "longitude": 18.771
 }
 ```
 
-### Checklist
-
-```text
-[ ] Day plan is created successfully
-[ ] Day plan belongs to selected trip
-[ ] User cannot create day plan for another user's trip
-```
-
 ---
 
-## 4.2 Add Route Item
+# 5. Geoapify Places Search Tests
+
+## 5.1 Search Tourism Places
 
 ### Endpoint
 
 ```http
-POST /api/trips/day-plans/{plan_id}/route-items/
+GET /api/external/geoapify/places/?city=Kotor, Montenegro&categories=tourism&radius=10000&limit=30
 ```
 
-### Request Body
+### Expected Result
+
+```text
+[ ] Geoapify request succeeds
+[ ] raw_place_count is returned
+[ ] normalized_place_count is returned
+[ ] filtered_out_count is returned
+[ ] places list is returned
+[ ] filtered_out_places list is returned
+```
+
+---
+
+## 5.2 Search History Places
+
+### Endpoint
+
+```http
+GET /api/external/geoapify/places/?city=Kotor, Montenegro&categories=history&radius=10000&limit=30
+```
+
+### Expected Result
+
+```text
+[ ] Geoapify request succeeds
+[ ] Returned places are mapped to internal categories
+[ ] History, Museum, Religious, or Tourism categories may appear
+[ ] Weak POIs can be filtered out
+```
+
+---
+
+## 5.3 Search Nature Places
+
+### Endpoint
+
+```http
+GET /api/external/geoapify/places/?city=Kotor, Montenegro&categories=nature&radius=30000&limit=30
+```
+
+### Expected Result
+
+```text
+[ ] Geoapify request succeeds
+[ ] Nature places are returned if available
+[ ] Search radius is large enough for natural areas outside city center
+[ ] No 400 Bad Request error occurs
+```
+
+---
+
+# 6. Geoapify Import Tests
+
+## 6.1 Import Tourism Places
+
+### Endpoint
+
+```http
+POST /api/external/geoapify/import-places/
+```
+
+### Body
 
 ```json
 {
-  "place": 1,
-  "visit_order": 1,
-  "arrival_time": "09:00",
-  "departure_time": "11:00"
+  "city": "Kotor, Montenegro",
+  "categories": ["tourism"],
+  "radius": 10000,
+  "limit": 30
 }
 ```
 
-### Checklist
+### Expected Result
 
 ```text
-[ ] Route item is created successfully
-[ ] Route item belongs to selected day plan
-[ ] User cannot add route item to another user's day plan
-[ ] Invalid place_id returns error
+[ ] Import request succeeds
+[ ] raw_place_count is returned
+[ ] normalized_place_count is returned
+[ ] imported_count is returned
+[ ] skipped_count is returned
+[ ] filtered_out_count is returned
+[ ] Imported places have source = geoapify
+[ ] Imported places have source_place_id
 ```
 
 ---
 
-# 5. Route Optimization Tests
+## 6.2 Import History Places
 
-## 5.1 Generate Single-Day Route
+### Body
+
+```json
+{
+  "city": "Kotor, Montenegro",
+  "categories": ["history"],
+  "radius": 10000,
+  "limit": 30
+}
+```
+
+### Expected Result
+
+```text
+[ ] Import request succeeds
+[ ] Geoapify categories are mapped correctly
+[ ] Weak memorial-like records are filtered out
+[ ] Duplicate records are skipped
+```
+
+---
+
+## 6.3 Import Nature Places
+
+### Body
+
+```json
+{
+  "city": "Kotor, Montenegro",
+  "categories": ["nature"],
+  "radius": 30000,
+  "limit": 30
+}
+```
+
+### Expected Result
+
+```text
+[ ] Import request succeeds
+[ ] Nature places are imported if available
+[ ] Imported places are stored with category = Nature
+[ ] source = geoapify
+```
+
+---
+
+## 6.4 Check Filtered Out Places
+
+### Expected Result
+
+```text
+[ ] filtered_out_places is returned
+[ ] Each filtered place includes place_name
+[ ] Each filtered place includes category
+[ ] Each filtered place includes reason
+[ ] Each filtered place includes raw_categories
+[ ] Each filtered place includes source
+[ ] Each filtered place includes source_place_id
+```
+
+### Example
+
+```json
+{
+  "place_name": "Savo Ilić",
+  "category": "Tourism",
+  "reason": "excluded_category: memorial",
+  "raw_categories": [
+    "tourism",
+    "tourism.sights",
+    "tourism.sights.memorial"
+  ],
+  "source": "geoapify",
+  "source_place_id": "example-source-place-id"
+}
+```
+
+---
+
+## 6.5 Duplicate Import Test
+
+Run the same import request twice.
+
+### Expected Result
+
+```text
+[ ] First request imports new places
+[ ] Second request skips existing places
+[ ] skipped_count increases
+[ ] skipped_places includes duplicate reason
+[ ] Database does not contain duplicate Geoapify records
+```
+
+---
+
+# 7. SQL Verification for Imported Places
+
+## 7.1 Check Category and Source Distribution
+
+```sql
+SELECT category, source, COUNT(*) AS count
+FROM place
+GROUP BY category, source
+ORDER BY source, category;
+```
+
+### Expected Result
+
+```text
+[ ] manual places are preserved
+[ ] geoapify places are visible
+[ ] Nature records exist if nature import succeeded
+[ ] Museum / Tourism / Religious / History records may exist depending on import result
+```
+
+---
+
+## 7.2 Check Geoapify Source Fields
+
+```sql
+SELECT place_id, place_name, category, source, source_place_id
+FROM place
+WHERE source = 'geoapify'
+ORDER BY place_id DESC;
+```
+
+### Expected Result
+
+```text
+[ ] source is geoapify
+[ ] source_place_id is not empty for imported Geoapify places
+[ ] place_name is readable
+[ ] category is mapped to internal project category
+```
+
+---
+
+# 8. Recommendation Score Tests
+
+## 8.1 Generate Route and Check Scores
 
 ### Endpoint
 
 ```http
-POST /api/trips/{trip_id}/generate-route/
+POST /api/trips/{trip_id}/generate-full-route/
 ```
 
-### Request Body
+### Body
 
 ```json
 {
-  "categories": ["history", "nature"],
-  "day_number": 1,
-  "date": "2026-04-10",
+  "categories": ["nature", "museum", "history"],
   "start_time": "09:00",
-  "end_time": "18:00"
+  "end_time": "18:00",
+  "route_mode": "balanced"
 }
 ```
 
-### Checklist
+### Expected Result
+
+```text
+[ ] route_items include recommendation_score
+[ ] recommendation_score is not null
+[ ] Nature places receive high score when nature is preferred
+[ ] Museum places receive high score when museum is preferred
+[ ] History places receive high score when history is preferred
+[ ] Manual places receive source bonus
+[ ] Geoapify places receive source score
+```
+
+---
+
+## 8.2 Compare Scores by Category
+
+Test with:
+
+```json
+{
+  "categories": ["nature"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "balanced"
+}
+```
+
+### Expected Result
+
+```text
+[ ] Nature places have higher recommendation_score than unrelated categories
+[ ] Tourism places have lower score than selected preferred category
+```
+
+---
+
+# 9. Route Mode Tests
+
+## 9.1 Balanced Route
+
+### Body
+
+```json
+{
+  "categories": ["nature", "museum", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "balanced"
+}
+```
+
+### Expected Result
 
 ```text
 [ ] Route is generated successfully
-[ ] Existing day plan for the same day is replaced
-[ ] Route items are created
-[ ] arrival_time and departure_time are not null
-[ ] Summary is returned
-[ ] Hotel is used as starting point if start_place is omitted
-[ ] selected_start_place is returned
-[ ] return_to_hotel_minutes is returned
-[ ] unplanned_places is returned
+[ ] summary.route_mode = balanced
+[ ] summary.distance_weight = 1.0
+[ ] summary.score_weight = 0.3
+[ ] summary.route_quality_note explains balanced mode
 ```
 
 ---
 
-## 5.2 Generate Single-Day Route With Manual Start Place
+## 9.2 Shortest Route
+
+### Body
+
+```json
+{
+  "categories": ["nature", "museum", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "shortest"
+}
+```
+
+### Expected Result
+
+```text
+[ ] Route is generated successfully
+[ ] summary.route_mode = shortest
+[ ] summary.distance_weight = 1.5
+[ ] summary.score_weight = 0.1
+[ ] summary.route_quality_note explains shortest mode
+```
+
+---
+
+## 9.3 Recommended Route
+
+### Body
+
+```json
+{
+  "categories": ["nature", "museum", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "recommended"
+}
+```
+
+### Expected Result
+
+```text
+[ ] Route is generated successfully
+[ ] summary.route_mode = recommended
+[ ] summary.distance_weight = 0.8
+[ ] summary.score_weight = 0.6
+[ ] summary.route_quality_note explains recommended mode
+```
+
+---
+
+## 9.4 Invalid Route Mode
+
+### Body
+
+```json
+{
+  "categories": ["nature", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "fastest"
+}
+```
+
+### Expected Result
+
+```text
+[ ] API returns validation error
+[ ] Route is not generated
+[ ] Invalid route_mode is rejected
+```
+
+---
+
+# 10. Manual Weight Override Tests
+
+## 10.1 Override Recommended Mode
+
+### Body
+
+```json
+{
+  "categories": ["nature", "museum", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "recommended",
+  "distance_weight": 2.0,
+  "score_weight": 0.05
+}
+```
+
+### Expected Result
+
+```text
+[ ] Route is generated successfully
+[ ] summary.route_mode = recommended
+[ ] summary.distance_weight = 2.0
+[ ] summary.score_weight = 0.05
+[ ] Manual values override route mode defaults
+```
+
+---
+
+## 10.2 Negative Distance Weight
+
+### Body
+
+```json
+{
+  "categories": ["nature"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "distance_weight": -1,
+  "score_weight": 0.3
+}
+```
+
+### Expected Result
+
+```text
+[ ] API returns validation error
+[ ] Route is not generated
+```
+
+---
+
+## 10.3 Negative Score Weight
+
+### Body
+
+```json
+{
+  "categories": ["nature"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "distance_weight": 1.0,
+  "score_weight": -0.5
+}
+```
+
+### Expected Result
+
+```text
+[ ] API returns validation error
+[ ] Route is not generated
+```
+
+---
+
+# 11. Full Route Generation Tests
+
+## 11.1 Generate Full Route
+
+### Endpoint
+
+```http
+POST /api/trips/{trip_id}/generate-full-route/
+```
+
+### Body
+
+```json
+{
+  "categories": ["nature", "museum", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "balanced"
+}
+```
+
+### Expected Result
+
+```text
+[ ] Full route is generated successfully
+[ ] Response includes summary
+[ ] Response includes day_plans
+[ ] Each day_plan includes route_items
+[ ] Each route_item includes arrival_time
+[ ] Each route_item includes departure_time
+[ ] Each route_item includes recommendation_score
+[ ] summary includes route_algorithm
+[ ] summary includes route_mode
+[ ] summary includes route_quality_note
+```
+
+---
+
+## 11.2 Existing Day Plans Are Replaced
+
+Run the same full route request twice.
+
+### Expected Result
+
+```text
+[ ] Old route_item records are deleted
+[ ] Old day_plan records are deleted
+[ ] New day_plan records are created
+[ ] New route_item records are created
+[ ] Duplicate day plans are not created for the same generation
+```
+
+---
+
+## 11.3 Hotel-Based Start
+
+Generate route without `start_place`.
+
+### Body
+
+```json
+{
+  "categories": ["nature", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "balanced"
+}
+```
+
+### Expected Result
+
+```text
+[ ] If trip has a hotel, hotel is used as start reference
+[ ] summary.hotel_used_as_start is not null
+[ ] summary.start_place_source = hotel_nearest_place
+[ ] selected_start_place is the nearest suitable place to hotel
+```
+
+---
+
+## 11.4 User-Provided Start Place
+
+### Body
+
+```json
+{
+  "start_place": "Kotor Old Town",
+  "categories": ["nature", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "balanced"
+}
+```
+
+### Expected Result
+
+```text
+[ ] Route starts from the provided start place
+[ ] summary.selected_start_place = Kotor Old Town
+[ ] summary.start_place_source = user_input
+```
+
+---
+
+## 11.5 Return to Hotel Calculation
+
+### Expected Result
+
+```text
+[ ] summary.return_to_hotel_distance_km is returned
+[ ] summary.return_to_hotel_minutes is returned
+[ ] total_plan_duration_minutes includes return-to-hotel time
+[ ] Route does not add a place if there is not enough time to return to hotel
+```
+
+---
+
+## 11.6 Unplanned Places
+
+Use a short time window.
+
+### Body
+
+```json
+{
+  "categories": ["nature", "museum", "history"],
+  "start_time": "09:00",
+  "end_time": "11:00",
+  "route_mode": "balanced"
+}
+```
+
+### Expected Result
+
+```text
+[ ] Some places may be left unplanned
+[ ] summary.unplanned_place_count is returned
+[ ] summary.unplanned_places is returned
+[ ] API does not crash
+```
+
+---
+
+# 12. Single Day Route Generation Tests
+
+## 12.1 Generate Single Day Route
 
 ### Endpoint
 
@@ -372,271 +908,251 @@ POST /api/trips/{trip_id}/generate-route/
 POST /api/trips/{trip_id}/generate-route/
 ```
 
-### Request Body
+### Body
 
 ```json
 {
-  "start_place": "kotor old town",
-  "categories": ["history", "nature"],
   "day_number": 1,
   "date": "2026-04-10",
+  "categories": ["nature", "history"],
   "start_time": "09:00",
-  "end_time": "18:00"
+  "end_time": "18:00",
+  "route_mode": "recommended"
 }
 ```
 
-### Checklist
+### Expected Result
 
 ```text
-[ ] Lowercase start_place works
-[ ] start_place_source is user_input
-[ ] Invalid start_place returns error
+[ ] Single day route is generated successfully
+[ ] Response includes summary
+[ ] Response includes day_plan
+[ ] Route items are created
+[ ] recommendation_score is returned
+[ ] route_mode is returned
+[ ] route_quality_note is returned
 ```
 
 ---
 
-## 5.3 Generate Full Route
+## 12.2 Short Single Day Time Window
 
-### Endpoint
-
-```http
-POST /api/trips/{trip_id}/generate-full-route/
-```
-
-### Request Body
+### Body
 
 ```json
 {
-  "categories": ["history", "nature"],
+  "day_number": 1,
+  "date": "2026-04-10",
+  "categories": ["nature", "history"],
   "start_time": "09:00",
-  "end_time": "18:00"
+  "end_time": "10:00",
+  "route_mode": "balanced"
 }
 ```
 
-### Checklist
+### Expected Result
 
 ```text
-[ ] Full route is generated successfully
-[ ] Multiple day plans are created
-[ ] Existing day plans are replaced
-[ ] Daily summaries are returned
-[ ] General summary is returned
-[ ] generated_days is correct
-[ ] total_days is calculated from trip start_date and end_date
-[ ] unplanned_place_count is returned
-[ ] unplanned_places list is returned
-[ ] Hotel-to-first-place travel time is included
-[ ] Return-to-hotel travel time is included
+[ ] API handles short time window safely
+[ ] Route may contain zero or few places
+[ ] Unplanned places are returned
+[ ] API does not crash
 ```
 
 ---
 
-## 5.4 Case-Insensitive Category Test
+# 13. Authorization and Ownership Tests
 
-### Endpoint
+## 13.1 Access Trip Owned by Another User
 
-```http
-POST /api/trips/{trip_id}/generate-full-route/
-```
-
-### Request Body
-
-```json
-{
-  "categories": ["HISTORY", "nature"],
-  "start_time": "09:00",
-  "end_time": "18:00"
-}
-```
-
-### Checklist
+### Expected Result
 
 ```text
-[ ] HISTORY matches History
-[ ] nature matches Nature
-[ ] Mixed case categories work correctly
+[ ] User A cannot retrieve User B's trip
+[ ] User A cannot generate route for User B's trip
+[ ] User A cannot delete User B's trip
 ```
 
 ---
 
-## 5.5 Short Time Window Test
+## 13.2 Missing Token
 
-### Endpoint
+Call protected endpoint without Authorization header.
 
-```http
-POST /api/trips/{trip_id}/generate-full-route/
-```
-
-### Request Body
-
-```json
-{
-  "categories": ["history", "nature"],
-  "start_time": "09:00",
-  "end_time": "09:30"
-}
-```
-
-### Checklist
+### Expected Result
 
 ```text
-[ ] API returns meaningful error if no place fits
-[ ] No empty DayPlan remains in database
-[ ] Transaction rollback works correctly
+[ ] API returns authentication error
+[ ] Protected data is not returned
 ```
 
 ---
 
-## 5.6 Missing Hotel and Missing Start Place Test
+## 13.3 Invalid Token
 
-Use a trip that has no hotel.
+Call protected endpoint with invalid token.
 
-### Endpoint
-
-```http
-POST /api/trips/{trip_id}/generate-full-route/
-```
-
-### Request Body
-
-```json
-{
-  "categories": ["history", "nature"],
-  "start_time": "09:00",
-  "end_time": "18:00"
-}
-```
-
-### Expected Response
-
-```json
-{
-  "error": "Start place is required when trip has no hotel."
-}
-```
-
-### Checklist
+### Expected Result
 
 ```text
-[ ] API returns error when both hotel and start_place are missing
-[ ] API works if start_place is provided manually
+[ ] API returns authentication error
+[ ] Protected data is not returned
 ```
 
 ---
 
-# 6. Authorization and Ownership Tests
+# 14. SQL Verification for Generated Routes
 
-## 6.1 No Token
-
-### Request
-
-```http
-GET /api/trips/
-```
-
-Send the request without an Authorization header.
-
-### Checklist
-
-```text
-[ ] API returns 401 Unauthorized
-```
-
----
-
-## 6.2 Invalid Token
-
-### Header
-
-```http
-Authorization: Bearer invalid_token
-```
-
-### Checklist
-
-```text
-[ ] API returns 401 Unauthorized
-```
-
----
-
-## 6.3 Access Another User's Trip
-
-### Steps
-
-```text
-1. Register user A
-2. Register user B
-3. Create trip with user A
-4. Login as user B
-5. Try GET /api/trips/{user_a_trip_id}/
-```
-
-### Checklist
-
-```text
-[ ] User B cannot access User A's trip
-[ ] API returns 404 or permission-safe error
-```
-
----
-
-# 7. Database Validation Checks
-
-Run these queries in MySQL after route generation.
-
-## Check Trips
+## 14.1 Check Route Items
 
 ```sql
-SELECT * FROM trip;
+SELECT 
+    dp.day_number,
+    dp.date,
+    ri.visit_order,
+    p.place_name,
+    p.category,
+    p.source,
+    ri.arrival_time,
+    ri.departure_time
+FROM route_item ri
+JOIN day_plan dp ON ri.day_plan_id = dp.plan_id
+JOIN place p ON ri.place_id = p.place_id
+ORDER BY dp.day_number, ri.visit_order;
 ```
 
-## Check Day Plans
-
-```sql
-SELECT * FROM day_plan;
-```
-
-## Check Route Items
-
-```sql
-SELECT * FROM route_item;
-```
-
-## Check Hotels
-
-```sql
-SELECT * FROM hotel;
-```
-
-### Checklist
+### Expected Result
 
 ```text
-[ ] Route generation creates expected day_plan records
-[ ] Route generation creates expected route_item records
-[ ] Failed route generation does not leave empty day_plan records
-[ ] Deleting a trip deletes related records
+[ ] Route items are ordered by day_number and visit_order
+[ ] arrival_time is not null
+[ ] departure_time is not null
+[ ] source includes manual and/or geoapify places
+[ ] categories match request preferences where possible
 ```
 
 ---
 
-# 8. API Completion Criteria
+## 14.2 Check Number of Day Plans
 
-The API part can be considered complete when:
+```sql
+SELECT trip_id, COUNT(*) AS day_plan_count
+FROM day_plan
+GROUP BY trip_id;
+```
+
+### Expected Result
 
 ```text
-[ ] Authentication works
-[ ] JWT-protected endpoints reject unauthenticated requests
-[ ] Trip CRUD works
-[ ] Places listing and filtering work
-[ ] Manual day plan creation works
-[ ] Manual route item creation works
-[ ] Single-day route generation works
-[ ] Full-route generation works
+[ ] Number of day plans matches trip duration when route generation succeeds
+[ ] Duplicate day plans are not created after regenerating full route
+```
+
+---
+
+## 14.3 Check Route Item Count by Source
+
+```sql
+SELECT 
+    p.source,
+    COUNT(*) AS route_item_count
+FROM route_item ri
+JOIN place p ON ri.place_id = p.place_id
+GROUP BY p.source;
+```
+
+### Expected Result
+
+```text
+[ ] Geoapify places can be used in generated routes
+[ ] Manual places can be used in generated routes
+```
+
+---
+
+# 15. Cleanup Queries
+
+## 15.1 Clear Generated Routes
+
+```sql
+DELETE FROM route_item;
+DELETE FROM day_plan;
+```
+
+---
+
+## 15.2 Clear Geoapify Places Only
+
+```sql
+DELETE FROM place
+WHERE source = 'geoapify';
+```
+
+---
+
+## 15.3 Full Cleanup for Route Testing
+
+```sql
+DELETE FROM route_item;
+DELETE FROM day_plan;
+DELETE FROM place
+WHERE source = 'geoapify';
+```
+
+---
+
+# 16. API Completion Criteria
+
+The backend API can be considered feature-complete for the current phase if all of the following are true:
+
+```text
+[ ] User registration works
+[ ] JWT login works
+[ ] Trips can be created, listed, retrieved, and deleted
+[ ] Places can be listed and filtered
+[ ] Geoapify city search works
+[ ] Geoapify place search works
+[ ] Geoapify import works
+[ ] Imported places store source and source_place_id
+[ ] Weak POIs are filtered out
+[ ] Duplicate imports are skipped
+[ ] Full route generation works
+[ ] Single day route generation works
 [ ] Hotel-based start works
-[ ] Return-to-hotel control works
-[ ] Daily summaries are returned
-[ ] Error responses are meaningful
-[ ] User ownership checks work
-[ ] Database remains consistent after errors
+[ ] Return-to-hotel calculation works
+[ ] Recommendation score is returned
+[ ] route_mode works
+[ ] route_quality_note is returned
+[ ] Manual weight override works
+[ ] Invalid route_mode is rejected
+[ ] Invalid negative weights are rejected
+[ ] Authorization and ownership checks work
+[ ] SQL verification confirms correct database records
+```
+
+---
+
+# 17. Recommended Test Order
+
+Use this order when testing from a clean database state:
+
+```text
+1. Register user
+2. Get JWT token
+3. Create trip
+4. Add hotel manually or through admin/database
+5. Check existing manual places
+6. Import Geoapify tourism places
+7. Import Geoapify history places
+8. Import Geoapify nature places
+9. Check place category/source distribution with SQL
+10. Generate full route with balanced mode
+11. Generate full route with shortest mode
+12. Generate full route with recommended mode
+13. Test manual weight override
+14. Test single day route generation
+15. Test short time window
+16. Test duplicate Geoapify import
+17. Test authorization with another user
+18. Verify database state with SQL
 ```
