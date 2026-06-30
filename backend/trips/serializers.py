@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Trip, TripPreference, DayPlan, RouteItem, Hotel
+from route_optimizer.scoring import calculate_place_score
 
 class TripPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,6 +13,8 @@ class TripPreferenceSerializer(serializers.ModelSerializer):
 class RouteItemSerializer(serializers.ModelSerializer):
     place_name = serializers.CharField(source="place.place_name", read_only=True)
     category = serializers.CharField(source="place.category", read_only=True)
+    source = serializers.CharField(source="place.source", read_only=True)
+    recommendation_score = serializers.SerializerMethodField()
 
     class Meta:
         model = RouteItem
@@ -20,9 +23,21 @@ class RouteItemSerializer(serializers.ModelSerializer):
             "visit_order",
             "place_name",
             "category",
+            "source",
+            "recommendation_score",
             "arrival_time",
             "departure_time",
         ]
+    
+
+    def get_recommendation_score(self, obj):
+        preferred_categories = self.context.get("preferred_categories", [])
+
+        return calculate_place_score(
+            obj.place,
+            preferred_categories=preferred_categories
+        )
+
 
 class DayPlanSerializer(serializers.ModelSerializer):
     route_items = RouteItemSerializer(many=True, read_only=True)
@@ -40,6 +55,17 @@ class DayPlanSerializer(serializers.ModelSerializer):
     
     def get_daily_summary(self, obj):
         return getattr(obj, "daily_summary", None)
+    
+    def get_route_items(self, obj):
+        route_items = obj.route_items.all().order_by("visit_order")
+
+        serializer = RouteItemSerializer(
+            route_items,
+            many=True,
+            context=self.context
+        )
+
+        return serializer.data
 
 class HotelSerializer(serializers.ModelSerializer):
     class Meta:
@@ -153,6 +179,11 @@ class GenerateRouteSerializer(serializers.Serializer):
     start_time = serializers.TimeField(required=False)
     end_time = serializers.TimeField(required=False)
 
+    route_mode = serializers.ChoiceField(choices=["balanced", "shortest", "recommended"], required=False)
+
+    distance_weight = serializers.FloatField(required=False, min_value=0)
+    score_weight = serializers.FloatField(required=False, min_value=0)
+
 
 class GenerateFullRouteSerializer(serializers.Serializer):
     start_place = serializers.CharField(
@@ -168,3 +199,8 @@ class GenerateFullRouteSerializer(serializers.Serializer):
 
     start_time = serializers.TimeField(required=False)
     end_time = serializers.TimeField(required=False)
+
+    route_mode = serializers.ChoiceField(choices=["balanced", "shortest", "recommended"], required=False)
+
+    distance_weight = serializers.FloatField(required=False, min_value=0)
+    score_weight = serializers.FloatField(required=False, min_value=0)

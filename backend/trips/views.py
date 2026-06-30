@@ -21,6 +21,7 @@ from route_optimizer.services import generate_full_route_for_trip, generate_day_
 from route_optimizer.time_estimator import estimate_travel_time_minutes, add_minutes_to_time
 from route_optimizer.graph_builder import build_weighted_graph
 from route_optimizer.nearest_neighbor import nearest_neighbor_route
+from route_optimizer.scoring import get_route_mode_weights
 
 class TripListAPIView(APIView):
     def get(self, request):
@@ -142,6 +143,12 @@ class GenerateRouteAPIView(APIView):
         start_time = serializer.validated_data.get("start_time", time(9, 0))
         end_time = serializer.validated_data.get("end_time", time(18, 0))
 
+        route_mode = serializer.validated_data.get("route_mode", "balanced")
+        mode_weights = get_route_mode_weights(route_mode)
+
+        distance_weight = serializer.validated_data.get("distance_weight", mode_weights["distance_weight"])
+        score_weight = serializer.validated_data.get("score_weight", mode_weights["score_weight"])
+
         try:
             result = generate_day_route_for_trip(
                 trip=trip,
@@ -151,6 +158,9 @@ class GenerateRouteAPIView(APIView):
                 date=date,
                 start_time=start_time,
                 end_time=end_time,
+                distance_weight=distance_weight,
+                score_weight=score_weight,
+                route_mode=route_mode,
             )
         except ValueError as error:
             return Response(
@@ -158,7 +168,12 @@ class GenerateRouteAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        response_serializer = DayPlanSerializer(result["day_plan"])
+        response_serializer = DayPlanSerializer(
+            result["day_plan"],
+            context={
+                "preferred_categories": categories
+            }
+        )
 
         return Response(
             {
@@ -194,6 +209,12 @@ class GenerateFullRouteAPIView(APIView):
         start_time = serializer.validated_data.get("start_time", time(9, 0))
         end_time = serializer.validated_data.get("end_time", time(18, 0))
 
+        route_mode = serializer.validated_data.get("route_mode", "balanced")
+        mode_weights = get_route_mode_weights(route_mode)
+
+        distance_weight = serializer.validated_data.get("distance_weight", mode_weights["distance_weight"])
+        score_weight = serializer.validated_data.get("score_weight", mode_weights["score_weight"])
+
         try:
             result = generate_full_route_for_trip(
                 trip=trip,
@@ -201,6 +222,9 @@ class GenerateFullRouteAPIView(APIView):
                 categories=categories,
                 start_time=start_time,
                 end_time=end_time,
+                distance_weight=distance_weight,
+                score_weight=score_weight,
+                route_mode=route_mode,
             )
         except ValueError as error:
             return Response(
@@ -210,7 +234,10 @@ class GenerateFullRouteAPIView(APIView):
 
         response_serializer = DayPlanSerializer(
             result["day_plans"],
-            many=True
+            many=True,
+            context={
+                "preferred_categories": categories
+            }
         )
 
         return Response(

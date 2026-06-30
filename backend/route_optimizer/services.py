@@ -11,6 +11,8 @@ from route_optimizer.time_estimator import (
     estimate_travel_time_minutes,
     add_minutes_to_time,
 )
+from route_optimizer.scoring import calculate_place_score, get_route_mode_note
+from route_optimizer.score_based_route import score_based_nearest_neighbor_route
 
 
 def filter_places_by_categories(categories):
@@ -35,7 +37,13 @@ def find_place_name_case_insensitive(places, start_place):
     return None
 
 
-def prepare_route_data(start_place, categories, hotel=None):
+def prepare_route_data(
+    start_place,
+    categories,
+    hotel=None,
+    distance_weight=1.0,
+    score_weight=0.3,
+):
     """
     Prepares common route data.
 
@@ -49,6 +57,9 @@ def prepare_route_data(start_place, categories, hotel=None):
 
     places_queryset = filter_places_by_categories(categories)
     places = list(places_queryset)
+
+    for place in places:
+        place.recommendation_score = calculate_place_score(place, preferred_categories=categories)
 
     if not places:
         raise ValueError("No places found for given categories.")
@@ -75,7 +86,13 @@ def prepare_route_data(start_place, categories, hotel=None):
         matched_start_place = nearest_place.place_name
     
     graph = build_weighted_graph(places)
-    route = nearest_neighbor_route(graph, matched_start_place)
+    route = score_based_nearest_neighbor_route(
+        graph=graph, 
+        places=places,
+        start_node=matched_start_place,
+        distance_weight=distance_weight,
+        score_weight=score_weight
+        )
 
     place_map = {place.place_name: place for place in places}
 
@@ -89,7 +106,16 @@ def prepare_route_data(start_place, categories, hotel=None):
     }
 
 
-def generate_full_route_for_trip(trip, start_place, categories, start_time, end_time):
+def generate_full_route_for_trip(
+    trip,
+    start_place,
+    categories,
+    start_time,
+    end_time,
+    distance_weight=1.0,
+    score_weight=0.3,
+    route_mode="balanced"
+):
     """
     Generates a full multi-day route for a trip.
 
@@ -107,7 +133,9 @@ def generate_full_route_for_trip(trip, start_place, categories, start_time, end_
     route_data = prepare_route_data(
         start_place=start_place,
         categories=categories,
-        hotel=hotel
+        hotel=hotel,
+        distance_weight=distance_weight,
+        score_weight=score_weight,
     )
 
     graph = route_data["graph"]
@@ -199,6 +227,8 @@ def generate_full_route_for_trip(trip, start_place, categories, start_time, end_
                     departure_time=departure_time
                 )
 
+                route_item.recommendation_score = getattr(place, "recommendation_score", None)
+
                 route_items.append(route_item)
 
                 total_distance_km += distance_km
@@ -259,14 +289,19 @@ def generate_full_route_for_trip(trip, start_place, categories, start_time, end_
         "total_distance_km": round(total_distance_km, 2),
         "total_travel_time_minutes": total_travel_time_minutes,
         "total_visit_duration_minutes": total_visit_duration_minutes,
-        "total_plan_duration_minutes": (total_travel_time_minutes + total_visit_duration_minutes),
+        "return_to_hotel_distance_km": round(total_return_to_hotel_distance_km, 2),
+        "return_to_hotel_minutes": total_return_to_hotel_minutes,
+        "total_plan_duration_minutes": (total_travel_time_minutes + total_visit_duration_minutes + total_return_to_hotel_minutes),
         "unplanned_place_count": len(unplanned_place_names),
         "unplanned_places": unplanned_place_names,
         "hotel_used_as_start": hotel.name if hotel else None,
         "selected_start_place": matched_start_place,
         "start_place_source": "hotel_nearest_place" if not start_place and hotel else "user_input",
-        "return_to_hotel_distance_km": round(total_return_to_hotel_distance_km, 2),
-        "return_to_hotel_minutes": total_return_to_hotel_minutes,
+        "route_algorithm": "score_based_nearest_neighbor",
+        "route_mode": route_mode,
+        "route_quality_note": get_route_mode_note(route_mode),
+        "distance_weight": distance_weight,
+        "score_weight": score_weight,
     }
 
     return {
@@ -276,7 +311,18 @@ def generate_full_route_for_trip(trip, start_place, categories, start_time, end_
     }
 
 
-def generate_day_route_for_trip(trip, start_place, categories, day_number, date, start_time, end_time):
+def generate_day_route_for_trip(
+    trip,
+    start_place,
+    categories,
+    day_number,
+    date,
+    start_time,
+    end_time,
+    distance_weight=1.0,
+    score_weight=0.3,
+    route_mode="balanced",
+):
     """
     Generates a route for a single day of a trip.
 
@@ -293,7 +339,9 @@ def generate_day_route_for_trip(trip, start_place, categories, day_number, date,
     route_data = prepare_route_data(
         start_place=start_place,
         categories=categories,
-        hotel=hotel
+        hotel=hotel,
+        distance_weight=distance_weight,
+        score_weight=score_weight,
     )
 
     graph = route_data["graph"]
@@ -372,6 +420,8 @@ def generate_day_route_for_trip(trip, start_place, categories, day_number, date,
                 departure_time=departure_time
             )
 
+            route_item.recommendation_score = getattr(place, "recommendation_score", None)
+
             route_items.append(route_item)
 
             total_distance_km += distance_km
@@ -407,6 +457,11 @@ def generate_day_route_for_trip(trip, start_place, categories, day_number, date,
         "return_to_hotel_distance_km": round(total_return_to_hotel_distance_km, 2),
         "return_to_hotel_minutes": total_return_to_hotel_minutes,
         "total_plan_duration_minutes": (total_travel_time_minutes + total_visit_duration_minutes + total_return_to_hotel_minutes),
+        "route_algorithm": "score_based_nearest_neighbor",
+        "route_mode": route_mode,
+        "route_quality_note": get_route_mode_note(route_mode),
+        "distance_weight": distance_weight,
+        "score_weight": score_weight,
     }
 
     return {
