@@ -1,44 +1,48 @@
-# Project Roadmap
+# Project Roadmap and Development Phases
 
-This document describes the development phases of the **AI-Powered Travel Planner** project.
+This document describes the development phases of the AI-Powered Travel Planner project.
+
+The roadmap is designed to keep the project structured, testable, and extendable.
 
 ---
 
-# Phase 1: Project Planning and Documentation
+# Phase 1: Planning and Documentation
 
 ## Status
 
 Completed
 
-## Completed Tasks
+## Goal
 
-* Project idea defined
-* Main system objectives documented
-* Target user scenario defined
-* Test scenario selected: 3-night Montenegro trip
-* System architecture documented
-* Context diagram created
-* Container diagram created
-* Component diagram created
-* Sequence diagram created
-* Route optimization flow documented
-* Database schema documented
-* API endpoint documentation created
-* Postman API test checklist prepared
+Define the project scope, system architecture, database structure, route optimization logic, API design, and development roadmap.
 
-## Main Outputs
+## Completed Work
 
-* `README.md`
-* `docs/architecture/context_diagram.md`
-* `docs/architecture/container_diagram.md`
-* `docs/architecture/component_diagram.md`
-* `docs/architecture/sequence_diagram.md`
-* `docs/architecture/route_optimization_flow.md`
-* `docs/database/schema.md`
-* `docs/algorithms/graph_model.md`
-* `docs/algorithms/route_optimization.md`
-* `docs/api/endpoints.md`
-* `docs/api/postman-test-checklist.md`
+- Project idea defined
+- Main features identified
+- Test scenario selected: 3-night Montenegro trip
+- System architecture documented
+- Context diagram created
+- Container diagram created
+- Component diagram created
+- Sequence diagram created
+- Route optimization flow documented
+- Database schema documented
+- API endpoint documentation created
+- Postman test checklist created
+
+## Related Documents
+
+```text
+docs/architecture/context_diagram.md
+docs/architecture/container_diagram.md
+docs/architecture/component_diagram.md
+docs/architecture/sequence_diagram.md
+docs/architecture/route_optimization_flow.md
+docs/database/schema.md
+docs/api/endpoints.md
+docs/api/postman-test-checklist.md
+```
 
 ---
 
@@ -48,69 +52,77 @@ Completed
 
 Completed
 
-## Completed Tasks
+## Goal
 
-* Django backend project created
-* Backend folder structure organized
-* Django apps created:
+Create the Django backend project structure and prepare the basic backend foundation.
 
-  * `api`
-  * `trips`
-  * `places`
-  * `route_optimizer`
-  * `external_services`
-* Django REST Framework installed and configured
-* MySQL database connection configured
-* Environment variables configured with `.env`
-* Django authentication system integrated
-* JWT authentication configured
-* Project dependencies saved in `requirements.txt`
+## Completed Work
 
-## Main Outputs
+- Django project created
+- Django REST Framework added
+- JWT authentication configured
+- MySQL connection configured
+- Environment variables added with `.env`
+- Backend apps created:
+  - `trips`
+  - `places`
+  - `route_optimizer`
+  - `external_services`
+  - `api`
+- Basic project settings configured
+- Requirements file created
 
-* `backend/config/settings.py`
-* `backend/config/urls.py`
-* `backend/requirements.txt`
-* `.env` configuration
-* Django app structure
+## Main Technologies
+
+```text
+Python
+Django
+Django REST Framework
+Simple JWT
+MySQL
+python-dotenv
+```
 
 ---
 
-# Phase 3: Database Implementation
+# Phase 3: Database Design and Integration
 
 ## Status
 
 Completed
 
-## Completed Tasks
+## Goal
 
-* MySQL database created
-* Django system tables created with migrations
-* Project-specific tables manually created in MySQL
-* Django models mapped to existing MySQL tables
-* `managed = False` used for manually created tables
-* Django `auth_user` table used for user management
-* Project tables connected through foreign keys
-* Django admin panel configured
-* Test data added through Django admin
+Create the database structure for trips, preferences, places, day plans, route items, and hotels.
 
-## Implemented Tables
+## Completed Work
 
-* `auth_user`
-* `trip`
-* `trip_preference`
-* `day_plan`
-* `place`
-* `route_item`
-* `hotel`
+- MySQL database created
+- Django built-in `auth_user` table used for users
+- Project tables created manually in MySQL
+- Django models connected to existing MySQL tables using `managed = False`
+- Foreign key relationships added
+- Place source tracking added:
+  - `source`
+  - `source_place_id`
 
-## Main Outputs
+## Main Tables
 
-* `trips/models.py`
-* `places/models.py`
-* `trips/admin.py`
-* `places/admin.py`
-* `docs/database/schema.md`
+```text
+auth_user
+trip
+trip_preference
+place
+day_plan
+route_item
+hotel
+```
+
+## Notes
+
+The project uses Django's built-in user table instead of creating a custom user table manually.
+
+Project-specific tables are managed manually in MySQL, while Django models are used to interact with them.
 
 ---
 
@@ -120,83 +132,43 @@ Completed
 
 Completed
 
-## Completed Tasks
+## Goal
 
-* User registration endpoint implemented
-* JWT token obtain endpoint implemented
-* JWT token refresh endpoint implemented
-* Places listing endpoint implemented
-* Place filtering by category implemented
-* Place filtering by minimum rating implemented
-* Trip creation endpoint implemented
-* Trip list endpoint implemented
-* Trip detail endpoint implemented
-* Trip delete endpoint implemented
-* Manual day plan creation endpoint implemented
-* Manual route item creation endpoint implemented
-* Single-day route generation endpoint implemented
-* Full multi-day route generation endpoint implemented
-* Case-insensitive category filtering implemented
-* Case-insensitive start place matching implemented
-* Service layer created for route generation logic
-* Hotel-based route start implemented
-* Automatic nearest-place selection from hotel implemented
-* Return-to-hotel travel time control implemented
-* Time window validation implemented
-* Transaction handling added for route generation
-* Route summary data added
-* Daily summary data added
-* Unplanned places returned in response
-* API endpoint documentation completed
-* Postman API test checklist prepared
+Develop the main REST API endpoints required for authentication, trips, places, day plans, and route generation.
 
-## Implemented API Groups
+## Completed Work
 
-### Authentication
+- User registration endpoint created
+- JWT token endpoint configured
+- JWT refresh endpoint configured
+- Places listing endpoint created
+- Place category filtering added
+- Minimum rating filtering added
+- Trip creation endpoint created
+- Trip listing endpoint created
+- Trip detail endpoint created
+- Trip deletion endpoint created
+- Single-day route generation endpoint created
+- Full multi-day route generation endpoint created
+- Ownership checks implemented for authenticated trip operations
 
-* `POST /api/auth/register/`
-* `POST /api/auth/token/`
-* `POST /api/auth/token/refresh/`
+## Main Endpoints
 
-### Places
+```http
+POST /api/auth/register/
+POST /api/auth/token/
+POST /api/auth/token/refresh/
 
-* `GET /api/places/`
+GET /api/places/
 
-### Trips
+GET /api/trips/
+POST /api/trips/
+GET /api/trips/{trip_id}/
+DELETE /api/trips/{trip_id}/
 
-* `GET /api/trips/`
-* `POST /api/trips/`
-* `GET /api/trips/{trip_id}/`
-* `DELETE /api/trips/{trip_id}/`
-
-### Manual Day Plan Management
-
-* `POST /api/trips/{trip_id}/day-plans/`
-* `POST /api/trips/day-plans/{plan_id}/route-items/`
-
-### Route Optimization
-
-* `POST /api/trips/{trip_id}/generate-route/`
-* `POST /api/trips/{trip_id}/generate-full-route/`
-
-## Main Outputs
-
-* `api/views.py`
-* `api/serializers.py`
-* `api/urls.py`
-* `places/views.py`
-* `places/serializers.py`
-* `places/urls.py`
-* `trips/views.py`
-* `trips/serializers.py`
-* `trips/urls.py`
-* `route_optimizer/services.py`
-* `route_optimizer/utils.py`
-* `route_optimizer/graph_builder.py`
-* `route_optimizer/nearest_neighbor.py`
-* `route_optimizer/time_estimator.py`
-* `docs/api/endpoints.md`
-* `docs/api/postman-test-checklist.md`
+POST /api/trips/{trip_id}/generate-route/
+POST /api/trips/{trip_id}/generate-full-route/
+```
 
 ---
 
@@ -204,52 +176,145 @@ Completed
 
 ## Status
 
-Next
+Completed
 
 ## Goal
 
-Replace or enrich manually entered place data with external data sources.
+Integrate an external places API to fetch real-world POI data and import it into the local database.
 
-## Planned Tasks
+## Completed Work
 
-* Research external place data providers
-* Select a place data provider
-* Create service files inside `external_services`
-* Add external API key configuration to `.env`
-* Implement external place search
-* Fetch tourist attractions by destination
-* Fetch place coordinates, ratings, categories and metadata
-* Store or cache external place results
-* Integrate external place data with route generation
-* Add error handling for failed external API requests
-* Document external service usage
+- Geoapify API integration added
+- City geocoding implemented
+- Places search by city implemented
+- Internal category to Geoapify category mapping added
+- Geoapify category to internal category mapping added
+- Place normalization implemented
+- Geoapify import endpoint created
+- Duplicate detection added
+- `source = geoapify` tracking added
+- `source_place_id` tracking added
+- Weak POI quality filtering added
+- Filtered-out places returned with reasons
 
-## Candidate APIs
+## Main Endpoints
 
-* OpenTripMap API
-* Google Places API
-* Foursquare Places API
+```http
+GET /api/external/geoapify/city/
+GET /api/external/geoapify/places/
+POST /api/external/geoapify/import-places/
+```
 
-## Suggested First Provider
+## Current External Provider
 
-OpenTripMap API
+```text
+Geoapify
+```
 
-## Reason
+## Notes
 
-OpenTripMap is suitable for tourist attraction data and is practical for a travel itinerary demo project.
-
-## Expected Outputs
-
-* `external_services/place_service.py`
-* `external_services/urls.py`
-* `external_services/views.py`
-* External place data endpoint
-* Updated API documentation
-* Updated `.env.example`
+OpenTripMap was considered earlier, but Geoapify is currently used because it was easier to access and integrate during development.
 
 ---
 
-# Phase 6: Weather Integration
+# Phase 6: Route Optimization Improvements
+
+## Status
+
+Completed
+
+## Goal
+
+Improve the route generation system so it considers not only distance but also user preferences and place quality.
+
+## Completed Work
+
+- Distance calculation added
+- Weighted graph construction added
+- Nearest neighbor route generation added
+- Hotel-based route starting point added
+- Return-to-hotel calculation added
+- Multi-day route splitting added
+- Time-window based route planning added
+- Estimated visit duration support added
+- Unplanned places tracking added
+- Recommendation score calculation added
+- Score-aware nearest neighbor algorithm added
+- Route modes added:
+  - `balanced`
+  - `shortest`
+  - `recommended`
+- Manual weight override added:
+  - `distance_weight`
+  - `score_weight`
+- Route quality explanation added with `route_quality_note`
+
+## Current Algorithm
+
+```text
+score_based_nearest_neighbor
+```
+
+## Simplified Formula
+
+```text
+route_cost = distance_weight * distance - score_weight * recommendation_score
+```
+
+## Supported Route Modes
+
+| Mode | Purpose |
+|---|---|
+| `balanced` | Balances distance and recommendation score |
+| `shortest` | Prioritizes shorter travel distance |
+| `recommended` | Prioritizes higher recommendation scores |
+
+---
+
+# Phase 7: Testing and Validation
+
+## Status
+
+In Progress
+
+## Goal
+
+Systematically test backend functionality using Postman and SQL verification queries.
+
+## Completed Work
+
+- Postman test checklist created
+- Authentication tests documented
+- Trip tests documented
+- Places tests documented
+- Geoapify tests documented
+- Import tests documented
+- Recommendation score tests documented
+- Route mode tests documented
+- Full route generation tests documented
+- Single-day route generation tests documented
+- SQL verification queries documented
+
+## Remaining Work
+
+- Execute all checklist tests from a clean database state
+- Test invalid request bodies
+- Test authorization with multiple users
+- Test short time windows
+- Test duplicate imports
+- Test route regeneration behavior
+- Verify SQL records after route generation
+- Fix any bugs found during testing
+
+## Related Document
+
+```text
+docs/api/postman-test-checklist.md
+```
+
+---
+
+# Phase 8: Weather Integration
 
 ## Status
 
@@ -257,114 +322,85 @@ Planned
 
 ## Goal
 
-Use weather data to improve route and place recommendations.
+Integrate weather data into the travel planning process.
 
-## Planned Tasks
+## Planned Work
 
-* Research weather API providers
-* Add weather API key to `.env`
-* Fetch weather data by destination and date
-* Add weather-aware recommendation rules
-* Penalize outdoor places during bad weather
-* Prefer indoor places during rain or extreme weather
-* Add weather information to generated route response
-* Document weather integration
+- Add weather API integration
+- Fetch weather by city and date
+- Store or cache weather data if needed
+- Adjust route recommendations based on weather
+- Prefer indoor places during bad weather
+- Prefer outdoor/nature places during good weather
+- Add weather information to route response
 
-## Candidate APIs
+## Possible Features
 
-* OpenWeather API
-* WeatherAPI
-* Meteostat
+```text
+Rainy day adjustment
+Outdoor activity penalty
+Indoor activity bonus
+Daily weather summary
+Weather-aware recommendation score
+```
 
-## Expected Outputs
+## Possible External APIs
 
-* `external_services/weather_service.py`
-* Weather-aware route scoring
-* Weather data in route response
-* Updated documentation
-
----
-
-# Phase 7: Route Optimization Improvements
-
-## Status
-
-Planned
-
-## Goal
-
-Improve route quality beyond basic nearest neighbor ordering.
-
-## Planned Tasks
-
-* Improve route scoring logic
-* Add preference-based place ranking
-* Add category weighting
-* Add rating-based scoring
-* Add estimated visit duration scoring
-* Add opening-hours logic if data is available
-* Improve travel time estimation
-* Replace simple distance-based travel time with real travel duration if possible
-* Compare nearest neighbor with alternative route strategies
-* Add route quality metrics
-
-## Possible Improvements
-
-* Preference score
-* Rating score
-* Distance score
-* Weather score
-* Time window score
-* Category diversity score
-
-## Expected Outputs
-
-* Improved `route_optimizer/services.py`
-* New route scoring helper functions
-* Better route summary metrics
-* Updated algorithm documentation
+```text
+OpenWeather
+WeatherAPI
+Meteostat
+```
 
 ---
 
-# Phase 8: Recommendation Engine
+# Phase 9: Recommendation Engine / AI Layer
 
 ## Status
 
-Planned
+Partially Completed
 
 ## Goal
 
-Recommend places based on user preferences and trip context.
+Create a recommendation layer that ranks places according to user preferences, place category, source, rating, visit duration, and context.
 
-## Planned Tasks
+## Completed Work
 
-* Build rule-based recommendation logic
-* Score places by user preferences
-* Add category weight system
-* Add destination-specific recommendation logic
-* Add trip duration awareness
-* Add budget-aware recommendation logic if budget is used
-* Prepare future ML-based recommendation module
-* Document recommendation logic
+- Rule-based recommendation score implemented
+- Category preference scoring added
+- Base category scoring added
+- Source-based scoring added
+- Rating-based scoring added when rating exists
+- Visit duration sanity check added
+- Recommendation score returned in route response
+- Recommendation score used in route algorithm
 
-## Initial Approach
+## Remaining Work
 
-Rule-based recommendation system.
+- Improve scoring formula with more real-world signals
+- Add weather-aware scoring
+- Add user preference history
+- Add popularity score if available
+- Add collaborative or ML-based recommendation later
+- Evaluate recommendation quality with test trips
+- Add explanation fields for why a place was recommended
+
+## Current Approach
+
+```text
+Rule-based recommendation scoring
+```
 
 ## Future Approach
 
-Machine learning-based recommendation system.
-
-## Expected Outputs
-
-* `ml_engine/`
-* Recommendation scoring functions
-* Preference-based route generation
-* Updated algorithm documentation
+```text
+Hybrid recommendation system
+Rule-based + ML-based scoring
+```
 
 ---
 
-# Phase 9: Mobile Application
+# Phase 10: Mobile Application
 
 ## Status
 
@@ -372,77 +408,46 @@ Planned
 
 ## Goal
 
-Create a Flutter mobile application that consumes the Django REST API.
+Develop the mobile frontend for users to create trips, select preferences, import places, and generate optimized travel routes.
 
-## Planned Tasks
+## Planned Work
 
-* Create Flutter project
-* Design authentication screens
-* Implement register screen
-* Implement login screen
-* Store JWT token securely
-* Create trip creation screen
-* Create trip list screen
-* Create trip detail screen
-* Display generated full route
-* Display daily route plans
-* Display daily summaries
-* Display unplanned places
-* Connect Flutter app to Django REST API
-* Add loading and error states
-* Improve mobile UI design
+- Flutter project setup
+- Authentication screens
+- Login/register flow
+- Trip creation screen
+- Trip list screen
+- Trip detail screen
+- Preference selection UI
+- Route mode selection UI
+- Route generation screen
+- Daily itinerary display
+- Place detail cards
+- Map view
+- API integration with Django backend
+- JWT token storage
+- Error handling and loading states
 
-## Expected Screens
+## Planned Route Mode UI
 
-* Register screen
-* Login screen
-* Home screen
-* Trip creation screen
-* Trip list screen
-* Trip detail screen
-* Generated route screen
-* Daily plan detail screen
+```text
+Balanced
+Shortest
+Recommended
+```
 
-## Expected Outputs
+## Possible Screens
 
-* `mobile/`
-* Flutter API service layer
-* Flutter models
-* Mobile UI screens
-
----
-
-# Phase 10: Testing and Validation
-
-## Status
-
-Planned
-
-## Goal
-
-Validate backend, database, route generation and mobile integration.
-
-## Planned Tasks
-
-* Run Postman API test checklist
-* Test authentication flow
-* Test trip ownership rules
-* Test database consistency
-* Test route generation with normal inputs
-* Test route generation with edge cases
-* Test short time window behavior
-* Test missing hotel and missing start place behavior
-* Test invalid category behavior
-* Test external API failure cases
-* Test Flutter API integration
-* Document test results
-
-## Expected Outputs
-
-* Completed Postman checklist
-* Test result notes
-* Bug fix commits
-* Updated documentation
+```text
+Login Screen
+Register Screen
+Home Screen
+Create Trip Screen
+Trip Detail Screen
+Route Result Screen
+Map Screen
+Profile Screen
+```
 
 ---
 
@@ -454,46 +459,75 @@ Planned
 
 ## Goal
 
-Prepare the project for deployment or demonstration.
+Prepare the project for deployment and public/demo access.
 
-## Planned Tasks
+## Planned Work
 
-* Prepare production settings
-* Move sensitive values to environment variables
-* Configure allowed hosts
-* Configure static files
-* Prepare production database settings
-* Create `.env.example`
-* Add deployment instructions
-* Deploy backend if required
-* Prepare demo data
-* Prepare project presentation
+- Backend production settings
+- Environment variable management
+- MySQL production database setup
+- Static file handling
+- CORS configuration
+- API deployment
+- Mobile app build
+- Domain configuration
+- HTTPS setup
+- README deployment section
+- Basic monitoring and error logging
 
-## Possible Deployment Platforms
+## Possible Deployment Options
 
-* Render
-* Railway
-* PythonAnywhere
-* VPS
-* Local demo environment
-
-## Expected Outputs
-
-* Deployment-ready backend configuration
-* `.env.example`
-* Deployment documentation
-* Demo-ready project
+```text
+Render
+Railway
+PythonAnywhere
+DigitalOcean
+AWS
+Azure
+```
 
 ---
 
-# Current Overall Status
+# Current Project Status Summary
 
-The core backend API has been completed.
-
-The project is ready to move into the next major phase:
+The backend currently supports:
 
 ```text
-External Services Integration
+[✓] User registration
+[✓] JWT authentication
+[✓] MySQL database integration
+[✓] Trip creation and listing
+[✓] Place listing and filtering
+[✓] Geoapify city search
+[✓] Geoapify place search
+[✓] Geoapify place import
+[✓] Place quality filtering
+[✓] Duplicate import detection
+[✓] Source tracking for imported places
+[✓] Full multi-day route generation
+[✓] Single-day route generation
+[✓] Hotel-based route starting point
+[✓] Return-to-hotel calculation
+[✓] Recommendation score calculation
+[✓] Score-aware route algorithm
+[✓] Route modes
+[✓] Route quality notes
+[✓] API documentation
+[✓] Postman test checklist
 ```
 
-The next development focus is to integrate an external place data provider, such as OpenTripMap, so that the system can fetch real tourist attraction data instead of relying only on manually inserted sample places.
+---
+
+# Next Immediate Tasks
+
+The next recommended tasks are:
+
+```text
+1. Run the full Postman test checklist
+2. Fix bugs found during testing
+3. Commit stable backend changes
+4. Add weather integration planning
+5. Start mobile app planning
+```
+
+---
