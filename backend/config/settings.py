@@ -19,6 +19,12 @@ load_dotenv()
 GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
 GEOAPIFY_BASE_URL = "https://api.geoapify.com"
 
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+WEATHER_BASE_URL = os.getenv(
+    "WEATHER_BASE_URL",
+    "https://api.open-meteo.com"
+)
+
 #OPENTRIPMAP_API_KEY = os.getenv("OPENTRIPMAP_API_KEY")
 #OPENTRIPMAP_BASE_URL = "https://api.opentripmap.com/0.1/en"
 
@@ -56,7 +62,8 @@ INSTALLED_APPS = [
     "external_services",
     "places",
     "route_optimizer",
-    "api"
+    "api",
+    "weather"
 ]
 
 MIDDLEWARE = [

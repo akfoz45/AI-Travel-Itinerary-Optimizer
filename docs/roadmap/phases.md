@@ -529,5 +529,3 @@ The next recommended tasks are:
 4. Add weather integration planning
 5. Start mobile app planning
 ```
-
----

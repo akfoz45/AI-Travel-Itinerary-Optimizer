@@ -28,7 +28,7 @@ urlpatterns = [
     path("api/trips/", include("trips.urls")),
     path("api/route-optimizer/", include("route_optimizer.urls")),
     path("api/external/", include("external_services.urls")),
-
+    path("api/weather/", include("weather.urls")),
 
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

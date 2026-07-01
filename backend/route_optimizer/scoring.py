@@ -14,7 +14,7 @@ ROUTE_MODE_WEIGHTS = {
 }
 
 
-def calculate_place_score(place, preferred_categories=None):
+def calculate_place_score(place, preferred_categories=None, weather_context=None):
     if preferred_categories is None:
         preferred_categories = []
 
@@ -52,6 +52,8 @@ def calculate_place_score(place, preferred_categories=None):
             score += 5
         elif place.estimated_visit_duration > 240:
             score -= 10
+
+    score += calculate_weather_score_adjustment(place=place, weather_context=weather_context)
 
     return round(score, 2)
 
@@ -92,3 +94,35 @@ def get_route_mode_note(route_mode):
         )
 
     return notes[normalized_mode]
+
+
+def calculate_weather_score_adjustment(place, weather_context=None):
+    if not weather_context:
+        return 0
+    
+    category = place.category
+
+    is_rainy = weather_context.get("is_rainy", False)
+    is_good_for_outdoor = weather_context.get("is_good_for_outdoor", False)
+
+    outdoor_categories = {"Nature", "Tourism"}
+
+    indoor_friendly_categories = {"Museum", "Religious", "Food"}
+
+    adjustment = 0
+
+    if is_rainy:
+        if category in outdoor_categories:
+            adjustment -= 25
+
+        if category in indoor_friendly_categories:
+            adjustment += 20
+
+    elif is_good_for_outdoor:
+        if category == "Nature":
+            adjustment += 20
+
+        if category == "Tourism":
+            adjustment += 10
+
+    return adjustment

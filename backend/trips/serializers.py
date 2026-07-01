@@ -32,10 +32,12 @@ class RouteItemSerializer(serializers.ModelSerializer):
 
     def get_recommendation_score(self, obj):
         preferred_categories = self.context.get("preferred_categories", [])
+        weather_context = self.context.get("weather_context")
 
         return calculate_place_score(
             obj.place,
-            preferred_categories=preferred_categories
+            preferred_categories=preferred_categories,
+            weather_context=weather_context,
         )
 
 

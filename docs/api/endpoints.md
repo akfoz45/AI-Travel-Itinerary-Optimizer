@@ -317,6 +317,89 @@ Required.
 
 ---
 
+# Weather Endpoints
+
+## Get Current Weather by Coordinates
+
+Returns normalized current weather data using Open-Meteo.
+
+This endpoint is used to check current weather conditions for a location. The route optimizer can use this data to adjust recommendation scores.
+
+### Endpoint
+
+```http
+GET /api/weather/current/?latitude=42.425&longitude=18.771
+```
+
+### Authentication
+
+Required.
+
+```http
+Authorization: Bearer <access_token>
+```
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---:|---:|---|
+| `latitude` | float | Yes | Latitude of the location. |
+| `longitude` | float | Yes | Longitude of the location. |
+
+### Example Request
+
+```http
+GET /api/weather/current/?latitude=42.425&longitude=18.771
+```
+
+### Example Response
+
+```json
+{
+  "latitude": 42.42,
+  "longitude": 18.78,
+  "timezone": "Europe/Podgorica",
+  "time": "2026-06-30T14:15",
+  "temperature": 26.1,
+  "apparent_temperature": 27.3,
+  "humidity": 52,
+  "precipitation": 0,
+  "rain": 0,
+  "wind_speed": 10.4,
+  "weather_code": 1,
+  "weather_description": "Mainly clear",
+  "is_rainy": false,
+  "is_good_for_outdoor": true
+}
+```
+
+### Error Responses
+
+Missing coordinates:
+
+```json
+{
+  "error": "latitude and longitude query parameters are required."
+}
+```
+
+Invalid coordinate format:
+
+```json
+{
+  "error": "latitude and longitude must be valid numbers."
+}
+```
+
+### Notes
+
+- The project currently uses Open-Meteo.
+- Open-Meteo does not require an API key for this basic usage.
+- Weather data is normalized before being returned to the client.
+- The route optimizer uses hotel coordinates to fetch weather when generating weather-aware routes.
+
+---
+
 # Route Generation Endpoints
 
 ## Generate Route for a Single Day
@@ -421,7 +504,25 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
     "route_mode": "recommended",
     "route_quality_note": "This route prioritizes places with higher recommendation scores.",
     "distance_weight": 0.8,
-    "score_weight": 0.6
+    "score_weight": 0.6,
+    "weather_used_for_scoring": true,
+    "weather_context": {
+      "latitude": 42.42,
+      "longitude": 18.78,
+      "timezone": "Europe/Podgorica",
+      "time": "2026-06-30T14:15",
+      "temperature": 26.1,
+      "apparent_temperature": 27.3,
+      "humidity": 52,
+      "precipitation": 0,
+      "rain": 0,
+      "wind_speed": 10.4,
+      "weather_code": 1,
+      "weather_description": "Mainly clear",
+      "is_rainy": false,
+      "is_good_for_outdoor": true
+    },
+    "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
   },
   "day_plan": {
     "plan_id": 5,
@@ -439,7 +540,7 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
         "place_name": "Lovcen National Park",
         "category": "Nature",
         "source": "geoapify",
-        "recommendation_score": 95,
+        "recommendation_score": 115,
         "arrival_time": "09:30:00",
         "departure_time": "12:30:00"
       }
@@ -451,9 +552,10 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
 ### Notes
 
 - This endpoint creates or regenerates one specific day plan.
-- The optimizer uses the selected categories, route mode, hotel location, travel distance, and recommendation score.
+- The optimizer uses the selected categories, route mode, hotel location, travel distance, recommendation score, and weather context.
 - If the trip has a hotel and `start_place` is not provided, the route starts from the nearest suitable place to the hotel.
 - Places that cannot fit into the selected time window are returned in `unplanned_places`.
+- Weather data is optional. If it cannot be fetched, route generation still continues.
 
 ---
 
@@ -470,6 +572,7 @@ The route optimizer considers:
 - travel distance between places
 - recommendation score
 - selected route mode
+- current weather context
 
 ### Endpoint
 
@@ -562,7 +665,25 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
     "route_mode": "balanced",
     "route_quality_note": "This route balances travel distance and recommendation score.",
     "distance_weight": 1.0,
-    "score_weight": 0.3
+    "score_weight": 0.3,
+    "weather_used_for_scoring": true,
+    "weather_context": {
+      "latitude": 42.42,
+      "longitude": 18.78,
+      "timezone": "Europe/Podgorica",
+      "time": "2026-06-30T14:15",
+      "temperature": 26.1,
+      "apparent_temperature": 27.3,
+      "humidity": 52,
+      "precipitation": 0,
+      "rain": 0,
+      "wind_speed": 10.4,
+      "weather_code": 1,
+      "weather_description": "Mainly clear",
+      "is_rainy": false,
+      "is_good_for_outdoor": true
+    },
+    "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
   },
   "day_plans": [
     {
@@ -600,6 +721,8 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
 - If there is not enough time in a day, remaining places are moved to following days.
 - Places that cannot fit into the trip duration are returned in `unplanned_places`.
 - The route algorithm is currently `score_based_nearest_neighbor`.
+- Weather is fetched using the trip hotel's coordinates.
+- If weather data cannot be fetched, route generation still succeeds without weather adjustment.
 
 ---
 
@@ -829,6 +952,7 @@ The score is calculated using:
 - rating, if available
 - place source
 - estimated visit duration sanity
+- current weather context, if available
 
 Example scoring logic:
 
@@ -839,8 +963,73 @@ Example scoring logic:
 | Manual source | Small bonus |
 | Geoapify source | Small bonus |
 | Very long visit duration | Possible penalty |
+| Good outdoor weather | Nature and Tourism score bonus |
+| Rainy weather | Nature and Tourism score penalty |
+| Rainy weather | Museum, Religious, and Food score bonus |
 
 The score is not stored permanently in the database. It is calculated during request processing and returned in the route response.
+
+---
+
+## Weather-Aware Route Scoring
+
+The route optimizer can use current weather data when generating a route.
+
+If the trip has a hotel, the hotel latitude and longitude are used to fetch current weather data.
+
+Weather affects recommendation scores as follows:
+
+| Weather Condition | Effect |
+|---|---|
+| Rainy weather | Outdoor categories such as `Nature` and `Tourism` receive a score penalty. |
+| Rainy weather | Indoor-friendly categories such as `Museum`, `Religious`, and `Food` receive a score bonus. |
+| Good outdoor weather | `Nature` places receive a score bonus. |
+| Good outdoor weather | `Tourism` places receive a smaller score bonus. |
+| Weather unavailable | Route is generated without weather adjustment. |
+
+### Weather Fields in Route Summary
+
+Route generation responses may include:
+
+```json
+{
+  "weather_used_for_scoring": true,
+  "weather_context": {
+    "latitude": 42.42,
+    "longitude": 18.78,
+    "timezone": "Europe/Podgorica",
+    "time": "2026-06-30T14:15",
+    "temperature": 26.1,
+    "apparent_temperature": 27.3,
+    "humidity": 52,
+    "precipitation": 0,
+    "rain": 0,
+    "wind_speed": 10.4,
+    "weather_code": 1,
+    "weather_description": "Mainly clear",
+    "is_rainy": false,
+    "is_good_for_outdoor": true
+  },
+  "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
+}
+```
+
+If weather data is not available:
+
+```json
+{
+  "weather_used_for_scoring": false,
+  "weather_context": null,
+  "weather_note": "Weather data was not available. Route was generated without weather adjustment."
+}
+```
+
+### Notes
+
+- Weather is currently fetched during route generation.
+- Weather data is not stored permanently in the database.
+- If the weather API fails, route generation still continues.
+- Weather is used as an adjustment factor, not as the only decision factor.
 
 ---
 
@@ -921,6 +1110,7 @@ WHERE source = 'geoapify';
 - Hotel-based route starting point
 - Return-to-hotel time calculation
 - Multi-day route generation
+- Single-day route generation
 - Geoapify place import
 - Place quality filtering
 - Recommendation score calculation
@@ -929,4 +1119,8 @@ WHERE source = 'geoapify';
   - `balanced`
   - `shortest`
   - `recommended`
+- Manual distance and score weight override
+- Weather-aware route scoring with Open-Meteo
+- Weather-based recommendation score adjustment
 - Route quality explanation in API response
+- Weather explanation note in route response

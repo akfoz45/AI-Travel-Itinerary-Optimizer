@@ -171,7 +171,8 @@ class GenerateRouteAPIView(APIView):
         response_serializer = DayPlanSerializer(
             result["day_plan"],
             context={
-                "preferred_categories": categories
+                "preferred_categories": categories,       
+                 "weather_context": result["summary"].get("weather_context"),
             }
         )
 
@@ -236,7 +237,8 @@ class GenerateFullRouteAPIView(APIView):
             result["day_plans"],
             many=True,
             context={
-                "preferred_categories": categories
+                "preferred_categories": categories,
+                "weather_context": result["summary"].get("weather_context"),
             }
         )
 

@@ -12,6 +12,7 @@ from route_optimizer.time_estimator import (
     add_minutes_to_time,
 )
 from route_optimizer.scoring import calculate_place_score, get_route_mode_note
+from weather.weather_service import OpenMeteoWeatherService
 from route_optimizer.score_based_route import score_based_nearest_neighbor_route
 
 
@@ -43,6 +44,7 @@ def prepare_route_data(
     hotel=None,
     distance_weight=1.0,
     score_weight=0.3,
+    weather_context=None,
 ):
     """
     Prepares common route data.
@@ -59,7 +61,11 @@ def prepare_route_data(
     places = list(places_queryset)
 
     for place in places:
-        place.recommendation_score = calculate_place_score(place, preferred_categories=categories)
+        place.recommendation_score = calculate_place_score(
+            place, 
+            preferred_categories=categories, 
+            weather_context=weather_context
+            )
 
     if not places:
         raise ValueError("No places found for given categories.")
@@ -129,6 +135,7 @@ def generate_full_route_for_trip(
     """
 
     hotel = get_trip_hotel(trip)
+    weather_context = get_weather_context_for_trip(trip)
 
     route_data = prepare_route_data(
         start_place=start_place,
@@ -136,6 +143,7 @@ def generate_full_route_for_trip(
         hotel=hotel,
         distance_weight=distance_weight,
         score_weight=score_weight,
+        weather_context=weather_context,
     )
 
     graph = route_data["graph"]
@@ -302,6 +310,9 @@ def generate_full_route_for_trip(
         "route_quality_note": get_route_mode_note(route_mode),
         "distance_weight": distance_weight,
         "score_weight": score_weight,
+        "weather_context": weather_context,
+        "weather_used_for_scoring": weather_context is not None,
+        "weather_note": get_weather_note_for_context(weather_context),
     }
 
     return {
@@ -335,6 +346,7 @@ def generate_day_route_for_trip(
     - returns created day plan and summary data
     """
     hotel = get_trip_hotel(trip)
+    weather_context = get_weather_context_for_trip(trip)
 
     route_data = prepare_route_data(
         start_place=start_place,
@@ -342,6 +354,7 @@ def generate_day_route_for_trip(
         hotel=hotel,
         distance_weight=distance_weight,
         score_weight=score_weight,
+        weather_context=weather_context,
     )
 
     graph = route_data["graph"]
@@ -462,6 +475,9 @@ def generate_day_route_for_trip(
         "route_quality_note": get_route_mode_note(route_mode),
         "distance_weight": distance_weight,
         "score_weight": score_weight,
+        "weather_context": weather_context,
+        "weather_used_for_scoring": weather_context is not None,
+        "weather_note": get_weather_note_for_context(weather_context),
     }
 
     return {
@@ -508,3 +524,31 @@ def find_nearest_place_to_hotel(hotel, places):
             nearest_place = place
 
     return nearest_place
+
+def get_weather_context_for_trip(trip):
+    hotel = get_trip_hotel(trip)
+
+    if not hotel:
+        return None
+    
+    try:
+        weather_service = OpenMeteoWeatherService()
+
+        weather_context = weather_service.get_current_weather_by_coordinates(
+            latitude=hotel.latitude,
+            longitude=hotel.longitude
+        )
+
+        return weather_context
+    
+    except Exception:
+        return None
+    
+
+def get_weather_note_for_context(weather_context):
+    try:
+        weather_service = OpenMeteoWeatherService()
+        return weather_service.get_weather_note(weather_context)
+    except Exception:
+        return "Weather note could not be generated."
+    
