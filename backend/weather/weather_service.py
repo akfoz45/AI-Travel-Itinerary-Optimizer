@@ -217,3 +217,81 @@ class OpenMeteoWeatherService:
             f"{f' ({weather_description}, {temperature}°C)' if temperature is not None else ''}. "
             "The route was adjusted conservatively."
         )
+    
+    def get_daily_forecast_by_coordinates(self, latitude, longitude, start_date, end_date):
+        data = self._get(
+            endpoint="/v1/forecast",
+            params={
+                "latitude": latitude,
+                "longitude": longitude,
+                "daily": ",".join([
+                    "weather_code",
+                    "temperature_2m_max",
+                    "temperature_2m_min",
+                    "precipitation_sum",
+                    "rain_sum",
+                    "wind_speed_10m_max",
+                ]),
+                "start_date": start_date,
+                "end_date": end_date,
+                "timezone": "auto",
+            },
+        )
+
+        return self.normalize_daily_forecast(data)
+    
+    def normalize_daily_forecast(self, data):
+        daily = data.get("daily", {})
+
+        dates = daily.get("time", [])
+        weather_codes = daily.get("weather_code", [])
+        temperature_max_values = daily.get("temperature_2m_max", [])
+        temperature_min_values = daily.get("temperature_2m_min", [])
+        precipitation_values = daily.get("precipitation_sum", [])
+        rain_values = daily.get("rain_sum", [])
+        wind_speed_values = daily.get("wind_speed_10m_max", [])
+
+        daily_forecast = []
+
+        for index, date in enumerate(dates):
+            weather_code = weather_codes[index] if index < len(weather_codes) else None
+            temperature_max = temperature_max_values[index] if index < len(temperature_max_values) else None
+            temperature_min = temperature_min_values[index] if index < len(temperature_min_values) else None
+            precipitation_sum = precipitation_values[index] if index < len(precipitation_values) else None
+            rain_sum = rain_values[index] if index < len(rain_values) else None
+            wind_speed_max = wind_speed_values[index] if index < len(wind_speed_values) else None
+
+            weather_description = self.get_weather_description(weather_code)
+
+            is_rainy = self.is_rainy_weather(weather_code=weather_code, precipitation=precipitation_sum, rain=rain_sum)
+
+            average_temperature = None
+
+            if temperature_max is not None and temperature_min is not None:
+                average_temperature = (temperature_max + temperature_min) / 2
+
+            is_good_for_outdoor = self.is_good_for_outdoor(
+                weather_code=weather_code,
+                temperature=average_temperature,
+                wind_speed=wind_speed_max,
+            )
+
+            daily_forecast.append({
+                "date": date,
+                "weather_code": weather_code,
+                "weather_description": weather_description,
+                "temperature_max": temperature_max,
+                "temperature_min": temperature_min,
+                "precipitation_sum": precipitation_sum,
+                "rain_sum": rain_sum,
+                "wind_speed_max": wind_speed_max,
+                "is_rainy": is_rainy,
+                "is_good_for_outdoor": is_good_for_outdoor,
+            })
+
+        return {
+            "latitude": data.get("latitude"),
+            "longitude": data.get("longitude"),
+            "timezone": data.get("timezone"),
+            "daily_forecast": daily_forecast,
+        }

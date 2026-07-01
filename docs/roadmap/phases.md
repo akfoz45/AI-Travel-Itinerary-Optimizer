@@ -1,8 +1,8 @@
-# Project Roadmap and Development Phases
+# Project Roadmap
 
-This document describes the development phases of the AI-Powered Travel Planner project.
+This document defines the development phases of the AI-Powered Travel Planner project.
 
-The roadmap is designed to keep the project structured, testable, and extendable.
+The roadmap is designed to build the project step by step, starting from documentation and backend foundation, then moving toward route optimization, external API integration, weather-aware routing, AI-based recommendation, mobile application development, and deployment.
 
 ---
 
@@ -14,35 +14,40 @@ Completed
 
 ## Goal
 
-Define the project scope, system architecture, database structure, route optimization logic, API design, and development roadmap.
+Define the project scope, system architecture, database structure, API design, and development roadmap before implementation.
 
 ## Completed Work
 
 - Project idea defined
-- Main features identified
-- Test scenario selected: 3-night Montenegro trip
-- System architecture documented
-- Context diagram created
-- Container diagram created
-- Component diagram created
-- Sequence diagram created
-- Route optimization flow documented
-- Database schema documented
+- Core features identified
+- Test scenario selected
+- Architecture diagrams created
+- Database schema designed
 - API endpoint documentation created
+- Algorithm documentation created
 - Postman test checklist created
+- Project roadmap created
 
-## Related Documents
+## Documents Created
 
 ```text
+README.md
 docs/architecture/context_diagram.md
 docs/architecture/container_diagram.md
 docs/architecture/component_diagram.md
 docs/architecture/sequence_diagram.md
 docs/architecture/route_optimization_flow.md
 docs/database/schema.md
+docs/algorithms/graph_model.md
+docs/algorithms/route_optimization.md
 docs/api/endpoints.md
 docs/api/postman-test-checklist.md
+docs/roadmap/phases.md
 ```
+
+## Notes
+
+This phase established the foundation of the project and made the implementation process more structured.
 
 ---
 
@@ -54,34 +59,46 @@ Completed
 
 ## Goal
 
-Create the Django backend project structure and prepare the basic backend foundation.
+Create the Django backend structure and configure the core backend environment.
 
 ## Completed Work
 
 - Django project created
+- Backend folder structure organized
 - Django REST Framework added
+- MySQL database connection configured
+- Environment variables added
+- `.env` file configured
+- `SECRET_KEY` moved to `.env`
+- Main Django apps created
 - JWT authentication configured
-- MySQL connection configured
-- Environment variables added with `.env`
-- Backend apps created:
-  - `trips`
-  - `places`
-  - `route_optimizer`
-  - `external_services`
-  - `api`
-- Basic project settings configured
-- Requirements file created
+- Basic URL structure created
 
-## Main Technologies
+## Django Apps Created
+
+```text
+api
+trips
+places
+route_optimizer
+external_services
+weather
+```
+
+## Backend Technologies
 
 ```text
 Python
 Django
 Django REST Framework
-Simple JWT
 MySQL
+JWT Authentication
 python-dotenv
 ```
+
+## Notes
+
+The backend now has a modular structure and is ready for API-based development.
 
 ---
 
@@ -93,18 +110,18 @@ Completed
 
 ## Goal
 
-Create the database structure for trips, preferences, places, day plans, route items, and hotels.
+Create the relational database schema and connect it with Django models.
 
 ## Completed Work
 
 - MySQL database created
-- Django built-in `auth_user` table used for users
-- Project tables created manually in MySQL
-- Django models connected to existing MySQL tables using `managed = False`
-- Foreign key relationships added
-- Place source tracking added:
-  - `source`
-  - `source_place_id`
+- Core project tables created manually
+- Django built-in `auth_user` table used for authentication
+- Project tables connected to Django models
+- `managed = False` used for manually created tables
+- Foreign key relationships defined
+- Place source tracking added
+- Geoapify source fields added to `place` table
 
 ## Main Tables
 
@@ -112,17 +129,29 @@ Create the database structure for trips, preferences, places, day plans, route i
 auth_user
 trip
 trip_preference
-place
 day_plan
 route_item
+place
 hotel
+```
+
+## Important Decision
+
+The project uses Django’s built-in `auth_user` table instead of creating a custom user table manually.
+
+Project-specific tables are created manually in MySQL and mapped with Django models.
+
+## Place Table Extensions
+
+```sql
+ALTER TABLE place
+ADD COLUMN source VARCHAR(50) DEFAULT 'manual',
+ADD COLUMN source_place_id VARCHAR(255) NULL;
 ```
 
 ## Notes
 
-The project uses Django's built-in user table instead of creating a custom user table manually.
-
-Project-specific tables are managed manually in MySQL, while Django models are used to interact with them.
+The database is ready for trip management, place storage, route generation, hotel-based routing, and external place import.
 
 ---
 
@@ -134,41 +163,39 @@ Completed
 
 ## Goal
 
-Develop the main REST API endpoints required for authentication, trips, places, day plans, and route generation.
+Create the main REST API endpoints required by the backend.
 
 ## Completed Work
 
 - User registration endpoint created
 - JWT token endpoint configured
 - JWT refresh endpoint configured
-- Places listing endpoint created
-- Place category filtering added
-- Minimum rating filtering added
-- Trip creation endpoint created
-- Trip listing endpoint created
-- Trip detail endpoint created
-- Trip deletion endpoint created
-- Single-day route generation endpoint created
-- Full multi-day route generation endpoint created
-- Ownership checks implemented for authenticated trip operations
+- Places list endpoint created
+- Place filtering added
+- Trip create endpoint added
+- Trip list endpoint added
+- Trip detail endpoint added
+- Trip delete endpoint added
+- Single-day route generation endpoint added
+- Full-route generation endpoint added
+- Request serializers added
+- Response serializers added
+- Ownership checks added for user trips
 
-## Main Endpoints
+## Main API Groups
 
-```http
-POST /api/auth/register/
-POST /api/auth/token/
-POST /api/auth/token/refresh/
-
-GET /api/places/
-
-GET /api/trips/
-POST /api/trips/
-GET /api/trips/{trip_id}/
-DELETE /api/trips/{trip_id}/
-
-POST /api/trips/{trip_id}/generate-route/
-POST /api/trips/{trip_id}/generate-full-route/
+```text
+Authentication APIs
+Trip APIs
+Place APIs
+Route Generation APIs
+External Service APIs
+Weather APIs
 ```
+
+## Notes
+
+The backend now supports the main API flow required by the mobile client and testing environment.
 
 ---
 
@@ -180,40 +207,57 @@ Completed
 
 ## Goal
 
-Integrate an external places API to fetch real-world POI data and import it into the local database.
+Integrate external place data into the project.
+
+## Initial Plan
+
+The original external place provider considered for the project was OpenTripMap.
+
+## Final Decision
+
+Geoapify Places API was selected because it was easier to access and integrate during development.
 
 ## Completed Work
 
-- Geoapify API integration added
-- City geocoding implemented
-- Places search by city implemented
+- Geoapify API key configured
+- Geoapify city geocoding added
+- Geoapify places search added
 - Internal category to Geoapify category mapping added
-- Geoapify category to internal category mapping added
-- Place normalization implemented
-- Geoapify import endpoint created
+- Geoapify category to internal project category mapping added
+- Place normalization added
+- Place quality filtering added
+- Weak POI filtering added
 - Duplicate detection added
-- `source = geoapify` tracking added
-- `source_place_id` tracking added
-- Weak POI quality filtering added
-- Filtered-out places returned with reasons
+- Geoapify place import endpoint added
+- Imported places stored with `source = geoapify`
+- Imported places stored with `source_place_id`
 
-## Main Endpoints
+## Geoapify Endpoints
 
 ```http
-GET /api/external/geoapify/city/
-GET /api/external/geoapify/places/
+GET /api/external/geoapify/city/?name=Kotor, Montenegro
+GET /api/external/geoapify/places/?city=Kotor, Montenegro&categories=nature,history
 POST /api/external/geoapify/import-places/
 ```
 
-## Current External Provider
+## Quality Filtering
+
+The system can filter out weak or less useful POIs such as:
 
 ```text
-Geoapify
+memorials
+military objects
+cemeteries
+graves
+war-related objects
+low-value monuments
 ```
 
 ## Notes
 
-OpenTripMap was considered earlier, but Geoapify is currently used because it was easier to access and integrate during development.
+Geoapify provides useful place data, but it does not provide a reliable Google-like rating field for every POI. Therefore, imported Geoapify places usually have `rating = null`.
+
+The project uses an internal `recommendation_score` instead of relying only on external ratings.
 
 ---
 
@@ -225,49 +269,50 @@ Completed
 
 ## Goal
 
-Improve the route generation system so it considers not only distance but also user preferences and place quality.
+Improve route generation using graph-based route modeling, recommendation scores, hotel-based starting points, and route modes.
 
 ## Completed Work
 
 - Distance calculation added
-- Weighted graph construction added
-- Nearest neighbor route generation added
-- Hotel-based route starting point added
-- Return-to-hotel calculation added
-- Multi-day route splitting added
-- Time-window based route planning added
-- Estimated visit duration support added
-- Unplanned places tracking added
+- Weighted graph builder added
+- Score-based nearest neighbor algorithm added
 - Recommendation score calculation added
-- Score-aware nearest neighbor algorithm added
-- Route modes added:
-  - `balanced`
-  - `shortest`
-  - `recommended`
-- Manual weight override added:
-  - `distance_weight`
-  - `score_weight`
-- Route quality explanation added with `route_quality_note`
+- Hotel-based start logic added
+- Nearest place to hotel logic added
+- Return-to-hotel calculation added
+- Multi-day route generation added
+- Single-day route generation added
+- Time-window validation added
+- Unplanned places tracking added
+- Route modes added
+- Manual weight override added
+- Route quality explanation added
 
-## Current Algorithm
+## Route Modes
 
-```text
-score_based_nearest_neighbor
-```
+| Mode | Description | Distance Weight | Score Weight |
+|---|---|---:|---:|
+| `balanced` | Balances travel distance and recommendation score. | `1.0` | `0.3` |
+| `shortest` | Prioritizes shorter travel distance. | `1.5` | `0.1` |
+| `recommended` | Prioritizes places with higher recommendation scores. | `0.8` | `0.6` |
 
-## Simplified Formula
+## Main Route Formula
 
 ```text
 route_cost = distance_weight * distance - score_weight * recommendation_score
 ```
 
-## Supported Route Modes
+Lower route cost is better.
 
-| Mode | Purpose |
-|---|---|
-| `balanced` | Balances distance and recommendation score |
-| `shortest` | Prioritizes shorter travel distance |
-| `recommended` | Prioritizes higher recommendation scores |
+## Main Algorithm
+
+```text
+score_based_nearest_neighbor
+```
+
+## Notes
+
+This phase made the route optimizer more realistic by considering both distance and place value.
 
 ---
 
@@ -279,38 +324,47 @@ In Progress
 
 ## Goal
 
-Systematically test backend functionality using Postman and SQL verification queries.
+Test all backend API flows using Postman and SQL verification.
 
 ## Completed Work
 
-- Postman test checklist created
+- Postman checklist created
 - Authentication tests documented
-- Trip tests documented
-- Places tests documented
+- Trip API tests documented
+- Place API tests documented
 - Geoapify tests documented
-- Import tests documented
-- Recommendation score tests documented
-- Route mode tests documented
-- Full route generation tests documented
-- Single-day route generation tests documented
-- SQL verification queries documented
+- Weather API tests documented
+- Route generation tests documented
+- SQL verification queries added
+- Completion criteria added
 
-## Remaining Work
+## Testing Areas
 
-- Execute all checklist tests from a clean database state
-- Test invalid request bodies
-- Test authorization with multiple users
-- Test short time windows
-- Test duplicate imports
-- Test route regeneration behavior
-- Verify SQL records after route generation
-- Fix any bugs found during testing
+```text
+Authentication
+JWT authorization
+Trip ownership
+Place listing and filtering
+Geoapify search
+Geoapify import
+Weather current endpoint
+Weather forecast endpoint
+Route generation
+Route modes
+Manual weight override
+Forecast-aware scoring
+Database verification
+```
 
-## Related Document
+## Main Test Checklist
 
 ```text
 docs/api/postman-test-checklist.md
 ```
+
+## Notes
+
+This phase should be completed before moving to frontend or deployment work.
 
 ---
 
@@ -330,19 +384,24 @@ Integrate weather data into the travel planning process and use weather conditio
 - Open-Meteo selected as the weather provider
 - API-key-free weather integration added
 - Current weather endpoint created
+- Daily forecast endpoint created
 - Weather data normalized for internal use
 - Weather context added to route generation
-- Weather-aware recommendation score adjustment added
+- Forecast-aware recommendation score adjustment added
 - Rainy weather detection added
 - Outdoor suitability detection added
 - Weather note added to route response
+- Full route generation connected to daily forecast data
+- Single-day route generation connected to selected date forecast data
+- Daily summaries can include day-specific weather context
 - API documentation updated
 - Postman test checklist updated
 
-## Main Endpoint
+## Main Endpoints
 
 ```http
 GET /api/weather/current/?latitude=42.425&longitude=18.771
+GET /api/weather/forecast/?latitude=42.425&longitude=18.771&start_date=2026-07-01&end_date=2026-07-03
 ```
 
 ## Current Weather Provider
@@ -362,11 +421,16 @@ rain
 wind_speed
 weather_code
 weather_description
+temperature_max
+temperature_min
+precipitation_sum
+rain_sum
+wind_speed_max
 is_rainy
 is_good_for_outdoor
 ```
 
-## Weather-Aware Route Behavior
+## Forecast-Aware Route Behavior
 
 | Weather Condition | Route Effect |
 |---|---|
@@ -376,36 +440,54 @@ is_good_for_outdoor
 | Good outdoor weather | `Tourism` places receive a smaller score bonus. |
 | Weather unavailable | Route is generated without weather adjustment. |
 
+## Route Algorithms Added
+
+```text
+forecast_aware_score_based_nearest_neighbor
+daily_weather_aware_score_based_nearest_neighbor
+```
+
 ## Response Fields Added to Route Summary
 
 ```json
 {
+  "weather_source": "forecast",
+  "weather_forecast_available": true,
+  "weather_forecast_dates": [
+    "2026-07-01",
+    "2026-07-02",
+    "2026-07-03"
+  ],
   "weather_used_for_scoring": true,
   "weather_context": {
-    "temperature": 26.1,
+    "date": "2026-07-01",
     "weather_description": "Mainly clear",
     "is_rainy": false,
     "is_good_for_outdoor": true
   },
-  "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
+  "weather_note": "Good outdoor weather detected. Nature and tourism places received a score bonus."
 }
 ```
 
 ## Remaining / Future Improvements
 
-- Use forecast data instead of only current weather
-- Match weather forecast to each trip day
-- Add date-based weather scoring
 - Add indoor/outdoor metadata to places
 - Cache weather responses to reduce repeated API calls
 - Add weather fallback behavior for unavailable APIs
 - Add weather-based explanations per day plan
+- Improve daily route generation so each day can dynamically choose different category priorities
+- Add user-facing weather badges in the mobile app
+- Add weather-aware route comparison in frontend
 
 ## Notes
 
-The current implementation uses current weather data from Open-Meteo and applies it during route generation.
+The current implementation uses Open-Meteo current weather and daily forecast data.
 
-This is enough for the current backend phase, but future versions should use forecast data for multi-day trips.
+Current weather is available as a standalone endpoint, but route generation primarily uses forecast data.
+
+Full route generation uses forecast data for the trip date range.
+
+Single-day route generation uses the forecast context matching the selected route date.
 
 ---
 
@@ -417,41 +499,51 @@ Partially Completed
 
 ## Goal
 
-Create a recommendation layer that ranks places according to user preferences, place category, source, rating, visit duration, and context.
+Add an intelligent recommendation layer that helps rank places according to user preferences, place category, source, estimated visit duration, and weather conditions.
 
 ## Completed Work
 
-- Rule-based recommendation score implemented
-- Category preference scoring added
-- Base category scoring added
+- Rule-based recommendation score added
+- Preferred category scoring added
+- Category base score added
+- Rating-based scoring added
 - Source-based scoring added
-- Rating-based scoring added when rating exists
-- Visit duration sanity check added
+- Visit duration scoring added
+- Weather-aware score adjustment added
+- Forecast-aware score adjustment added
 - Recommendation score returned in route response
-- Recommendation score used in route algorithm
 
-## Remaining Work
-
-- Improve scoring formula with more real-world signals
-- Add weather-aware scoring
-- Add user preference history
-- Add popularity score if available
-- Add collaborative or ML-based recommendation later
-- Evaluate recommendation quality with test trips
-- Add explanation fields for why a place was recommended
-
-## Current Approach
+## Current Recommendation Factors
 
 ```text
-Rule-based recommendation scoring
+preferred categories
+place category
+rating
+place source
+estimated visit duration
+weather context
+forecast context
 ```
 
-## Future Approach
+## Current Status
 
-```text
-Hybrid recommendation system
-Rule-based + ML-based scoring
-```
+The project currently uses a rule-based recommendation system.
+
+This is suitable for the current backend phase because it is transparent, easy to explain, and stable for testing.
+
+## Future Improvements
+
+- Add machine learning-based recommendation
+- Learn user preferences from past trips
+- Add user feedback after visiting places
+- Add popularity score
+- Add place type embeddings
+- Add collaborative filtering
+- Add personalized recommendation ranking
+
+## Notes
+
+This phase is partially completed because the current system has intelligent scoring, but it is not yet a trained ML model.
 
 ---
 
@@ -463,46 +555,54 @@ Planned
 
 ## Goal
 
-Develop the mobile frontend for users to create trips, select preferences, import places, and generate optimized travel routes.
+Create a mobile client that communicates with the Django REST API.
 
-## Planned Work
-
-- Flutter project setup
-- Authentication screens
-- Login/register flow
-- Trip creation screen
-- Trip list screen
-- Trip detail screen
-- Preference selection UI
-- Route mode selection UI
-- Route generation screen
-- Daily itinerary display
-- Place detail cards
-- Map view
-- API integration with Django backend
-- JWT token storage
-- Error handling and loading states
-
-## Planned Route Mode UI
+## Planned Technology
 
 ```text
-Balanced
-Shortest
-Recommended
+Flutter
+Dart
+REST API
+JWT Authentication
 ```
 
-## Possible Screens
+## Planned Screens
 
 ```text
-Login Screen
-Register Screen
-Home Screen
-Create Trip Screen
-Trip Detail Screen
-Route Result Screen
-Map Screen
-Profile Screen
+Login screen
+Register screen
+Home screen
+Trip list screen
+Create trip screen
+Trip detail screen
+Place list screen
+Route result screen
+Day plan detail screen
+Weather information display
+Profile screen
 ```
+
+## Planned Features
+
+- User login
+- User registration
+- Create trip
+- List trips
+- View trip detail
+- Generate full route
+- Generate single-day route
+- Show route items by day
+- Show arrival and departure times
+- Show place categories
+- Show recommendation scores
+- Show weather context
+- Show weather note
+- Show unplanned places
+- Display route quality note
+
+## Notes
+
+Mobile development should start after backend API testing is stable.
 
 ---
 
@@ -514,21 +614,20 @@ Planned
 
 ## Goal
 
-Prepare the project for deployment and public/demo access.
+Deploy the backend API and prepare the project for real-world demonstration.
 
 ## Planned Work
 
-- Backend production settings
-- Environment variable management
-- MySQL production database setup
-- Static file handling
-- CORS configuration
-- API deployment
-- Mobile app build
-- Domain configuration
-- HTTPS setup
-- README deployment section
-- Basic monitoring and error logging
+- Prepare production settings
+- Configure environment variables
+- Configure database credentials
+- Set `DEBUG=False`
+- Configure allowed hosts
+- Configure static files
+- Deploy backend
+- Deploy database
+- Test API in production
+- Update README with deployment instructions
 
 ## Possible Deployment Options
 
@@ -538,42 +637,49 @@ Railway
 PythonAnywhere
 DigitalOcean
 AWS
-Azure
 ```
+
+## Notes
+
+Deployment should be done after backend testing and before final project presentation.
 
 ---
 
 # Current Project Status Summary
 
-The backend currently supports:
-
 ```text
-[✓] User registration
-[✓] JWT authentication
-[✓] MySQL database integration
-[✓] Trip creation and listing
-[✓] Place listing and filtering
-[✓] Geoapify city search
-[✓] Geoapify place search
-[✓] Geoapify place import
-[✓] Place quality filtering
-[✓] Duplicate import detection
-[✓] Source tracking for imported places
-[✓] Full multi-day route generation
-[✓] Single-day route generation
-[✓] Hotel-based route starting point
-[✓] Return-to-hotel calculation
-[✓] Recommendation score calculation
-[✓] Score-aware route algorithm
-[✓] Route modes
-[✓] Route quality notes
-[✓] API documentation
-[✓] Postman test checklist
+[✓] Project idea defined
+[✓] Documentation-first structure created
+[✓] Architecture diagrams created
+[✓] MySQL database selected
+[✓] Django backend created
+[✓] JWT authentication added
+[✓] Main database tables created
+[✓] Django models connected to manual MySQL tables
+[✓] Places API created
+[✓] Trips API created
+[✓] Route generation API created
+[✓] Geoapify integration added
+[✓] Geoapify import added
+[✓] Place quality filtering added
+[✓] Recommendation scoring added
+[✓] Hotel-based route start added
+[✓] Return-to-hotel calculation added
+[✓] Route modes added
+[✓] Manual route weight override added
 [✓] Weather API integration with Open-Meteo
 [✓] Current weather endpoint
-[✓] Weather-aware recommendation scoring
-[✓] Weather context in route summary
+[✓] Daily weather forecast endpoint
+[✓] Forecast-aware recommendation scoring
+[✓] Forecast context in route summary
+[✓] Day-specific weather context in daily summaries
 [✓] Weather note in route response
+[✓] Daily weather-aware full route generation
+[✓] API documentation updated
+[✓] Postman test checklist updated
+[ ] Full Postman testing completed
+[ ] Mobile app started
+[ ] Deployment completed
 ```
 
 ---
@@ -586,6 +692,17 @@ The next recommended tasks are:
 1. Run the full Postman test checklist
 2. Fix bugs found during testing
 3. Commit stable backend changes
-4. Improve weather integration with forecast-based scoring
+4. Improve daily-weather-aware route quality if needed
 5. Start mobile app planning
+```
+
+---
+
+# Suggested Git Commit
+
+After updating this roadmap file:
+
+```bash
+git add docs/roadmap/phases.md
+git commit -m "docs: update roadmap for forecast-aware routing"
 ```

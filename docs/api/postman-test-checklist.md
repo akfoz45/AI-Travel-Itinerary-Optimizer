@@ -179,9 +179,9 @@ POST /api/trips/
 ```json
 {
   "destination": "Kotor, Montenegro",
-  "start_date": "2026-04-10",
-  "end_date": "2026-04-12",
-  "preferences": ["nature", "history"]
+  "start_date": "2026-07-01",
+  "end_date": "2026-07-03",
+  "preferences": ["nature", "history", "museum"]
 }
 ```
 
@@ -596,7 +596,7 @@ Authorization: Bearer <access_token>
 
 ---
 
-## 8.2 Missing Weather Coordinates
+## 8.2 Missing Current Weather Coordinates
 
 ### Endpoint
 
@@ -621,7 +621,7 @@ GET /api/weather/current/
 
 ---
 
-## 8.3 Invalid Weather Coordinates
+## 8.3 Invalid Current Weather Coordinates
 
 ### Endpoint
 
@@ -646,7 +646,7 @@ GET /api/weather/current/?latitude=abc&longitude=test
 
 ---
 
-## 8.4 Weather Endpoint Without Token
+## 8.4 Current Weather Endpoint Without Token
 
 ### Endpoint
 
@@ -659,6 +659,111 @@ GET /api/weather/current/?latitude=42.425&longitude=18.771
 ```text
 [ ] API returns authentication error
 [ ] Weather data is not returned
+```
+
+---
+
+## 8.5 Get Daily Forecast by Coordinates
+
+### Endpoint
+
+```http
+GET /api/weather/forecast/?latitude=42.425&longitude=18.771&start_date=2026-07-01&end_date=2026-07-03
+```
+
+### Authentication
+
+Required.
+
+```http
+Authorization: Bearer <access_token>
+```
+
+### Expected Result
+
+```text
+[ ] Request succeeds with valid JWT token
+[ ] Response includes latitude
+[ ] Response includes longitude
+[ ] Response includes timezone
+[ ] Response includes daily_forecast
+[ ] Each daily forecast item includes date
+[ ] Each daily forecast item includes weather_code
+[ ] Each daily forecast item includes weather_description
+[ ] Each daily forecast item includes temperature_max
+[ ] Each daily forecast item includes temperature_min
+[ ] Each daily forecast item includes precipitation_sum
+[ ] Each daily forecast item includes rain_sum
+[ ] Each daily forecast item includes wind_speed_max
+[ ] Each daily forecast item includes is_rainy
+[ ] Each daily forecast item includes is_good_for_outdoor
+```
+
+---
+
+## 8.6 Missing Forecast Date Range
+
+### Endpoint
+
+```http
+GET /api/weather/forecast/?latitude=42.425&longitude=18.771
+```
+
+### Expected Result
+
+```text
+[ ] API returns validation error
+[ ] Response says start_date and end_date are required
+```
+
+### Expected Response
+
+```json
+{
+  "error": "start_date and end_date query parameters are required."
+}
+```
+
+---
+
+## 8.7 Invalid Forecast Coordinates
+
+### Endpoint
+
+```http
+GET /api/weather/forecast/?latitude=abc&longitude=test&start_date=2026-07-01&end_date=2026-07-03
+```
+
+### Expected Result
+
+```text
+[ ] API returns validation error
+[ ] Response says latitude and longitude must be valid numbers
+```
+
+### Expected Response
+
+```json
+{
+  "error": "latitude and longitude must be valid numbers."
+}
+```
+
+---
+
+## 8.8 Forecast Endpoint Without Token
+
+### Endpoint
+
+```http
+GET /api/weather/forecast/?latitude=42.425&longitude=18.771&start_date=2026-07-01&end_date=2026-07-03
+```
+
+### Expected Result
+
+```text
+[ ] API returns authentication error
+[ ] Forecast data is not returned
 ```
 
 ---
@@ -895,9 +1000,9 @@ Test with:
 
 ---
 
-# 12. Weather-Aware Route Tests
+# 12. Forecast-Aware Route Tests
 
-## 12.1 Full Route Uses Weather Context
+## 12.1 Full Route Uses Forecast Context
 
 ### Endpoint
 
@@ -920,31 +1025,22 @@ POST /api/trips/{trip_id}/generate-full-route/
 
 ```text
 [ ] Route is generated successfully
+[ ] summary.route_algorithm = daily_weather_aware_score_based_nearest_neighbor
+[ ] summary.weather_source = forecast
+[ ] summary includes weather_forecast_available
+[ ] summary includes weather_forecast_dates
 [ ] summary includes weather_used_for_scoring
 [ ] summary includes weather_context
 [ ] summary includes weather_note
-[ ] If trip has a hotel, weather_used_for_scoring should be true
-[ ] If weather API fails, route generation still succeeds
-```
-
-### Expected Weather Fields
-
-```json
-{
-  "weather_used_for_scoring": true,
-  "weather_context": {
-    "temperature": 26.1,
-    "weather_description": "Mainly clear",
-    "is_rainy": false,
-    "is_good_for_outdoor": true
-  },
-  "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
-}
+[ ] Each day_plan.daily_summary includes weather_context
+[ ] Each day_plan.daily_summary uses its own date's weather context
+[ ] If trip has a hotel, forecast is fetched using hotel coordinates
+[ ] If forecast API fails, route generation still succeeds
 ```
 
 ---
 
-## 12.2 Single Day Route Uses Weather Context
+## 12.2 Single Day Route Uses Forecast Context
 
 ### Endpoint
 
@@ -957,7 +1053,7 @@ POST /api/trips/{trip_id}/generate-route/
 ```json
 {
   "day_number": 1,
-  "date": "2026-04-10",
+  "date": "2026-07-02",
   "categories": ["nature", "history"],
   "start_time": "09:00",
   "end_time": "18:00",
@@ -969,8 +1065,12 @@ POST /api/trips/{trip_id}/generate-route/
 
 ```text
 [ ] Single day route is generated successfully
-[ ] summary includes weather_used_for_scoring
+[ ] summary.route_algorithm = forecast_aware_score_based_nearest_neighbor
+[ ] summary.weather_source = forecast
+[ ] summary includes weather_forecast_available
+[ ] summary includes weather_forecast_dates
 [ ] summary includes weather_context
+[ ] summary.weather_context.date matches selected date if forecast is available
 [ ] summary includes weather_note
 [ ] recommendation_score reflects weather adjustment
 ```
@@ -997,24 +1097,15 @@ Generate a route for a trip that has no hotel record.
 
 ```text
 [ ] Route generation still works if start_place is provided
+[ ] weather_forecast_available is false
 [ ] weather_used_for_scoring is false
 [ ] weather_context is null
 [ ] weather_note says weather data was not available
 ```
 
-### Expected Weather Fields
-
-```json
-{
-  "weather_used_for_scoring": false,
-  "weather_context": null,
-  "weather_note": "Weather data was not available. Route was generated without weather adjustment."
-}
-```
-
 ---
 
-## 12.4 Weather-Aware Score Check: Good Weather
+## 12.4 Forecast-Aware Score Check: Good Weather
 
 When `is_good_for_outdoor = true`:
 
@@ -1032,7 +1123,7 @@ Nature score > Tourism score > unrelated category score
 
 ---
 
-## 12.5 Weather-Aware Score Check: Rainy Weather
+## 12.5 Forecast-Aware Score Check: Rainy Weather
 
 When `is_rainy = true`:
 
@@ -1048,6 +1139,22 @@ Expected behavior:
 
 ```text
 Indoor-friendly places should become more competitive in the route.
+```
+
+---
+
+## 12.6 Daily Forecast Context Check
+
+Generate a full route for a multi-day trip.
+
+### Expected Result
+
+```text
+[ ] Day 1 daily_summary weather_context date matches day 1 date
+[ ] Day 2 daily_summary weather_context date matches day 2 date
+[ ] Day 3 daily_summary weather_context date matches day 3 date
+[ ] Different days can have different weather_context values
+[ ] Same place is not repeated across different days
 ```
 
 ---
@@ -1083,12 +1190,17 @@ POST /api/trips/{trip_id}/generate-full-route/
 [ ] Each route_item includes arrival_time
 [ ] Each route_item includes departure_time
 [ ] Each route_item includes recommendation_score
-[ ] summary includes route_algorithm
-[ ] summary includes route_mode
-[ ] summary includes route_quality_note
+[ ] summary.route_algorithm = daily_weather_aware_score_based_nearest_neighbor
+[ ] summary.route_mode is returned
+[ ] summary.route_quality_note is returned
+[ ] summary.weather_source = forecast
+[ ] summary includes weather_forecast_available
+[ ] summary includes weather_forecast_dates
 [ ] summary includes weather_used_for_scoring
 [ ] summary includes weather_context
 [ ] summary includes weather_note
+[ ] Each day_plan.daily_summary includes daily weather_context
+[ ] Same place is not repeated across different days
 ```
 
 ---
@@ -1131,7 +1243,7 @@ Generate route without `start_place`.
 [ ] summary.hotel_used_as_start is not null
 [ ] summary.start_place_source = hotel_nearest_place
 [ ] selected_start_place is the nearest suitable place to hotel
-[ ] weather is fetched using hotel coordinates
+[ ] forecast is fetched using hotel coordinates
 ```
 
 ---
@@ -1214,7 +1326,7 @@ POST /api/trips/{trip_id}/generate-route/
 ```json
 {
   "day_number": 1,
-  "date": "2026-04-10",
+  "date": "2026-07-02",
   "categories": ["nature", "history"],
   "start_time": "09:00",
   "end_time": "18:00",
@@ -1232,9 +1344,12 @@ POST /api/trips/{trip_id}/generate-route/
 [ ] recommendation_score is returned
 [ ] route_mode is returned
 [ ] route_quality_note is returned
-[ ] weather_used_for_scoring is returned
-[ ] weather_context is returned
-[ ] weather_note is returned
+[ ] summary.route_algorithm = forecast_aware_score_based_nearest_neighbor
+[ ] summary.weather_source = forecast
+[ ] summary.weather_forecast_available is returned
+[ ] summary.weather_forecast_dates is returned
+[ ] summary.weather_context is returned
+[ ] summary.weather_note is returned
 ```
 
 ---
@@ -1246,7 +1361,7 @@ POST /api/trips/{trip_id}/generate-route/
 ```json
 {
   "day_number": 1,
-  "date": "2026-04-10",
+  "date": "2026-07-02",
   "categories": ["nature", "history"],
   "start_time": "09:00",
   "end_time": "10:00",
@@ -1333,6 +1448,7 @@ ORDER BY dp.day_number, ri.visit_order;
 [ ] departure_time is not null
 [ ] source includes manual and/or geoapify places
 [ ] categories match request preferences where possible
+[ ] Same place is not repeated across multiple days
 ```
 
 ---
@@ -1370,6 +1486,27 @@ GROUP BY p.source;
 ```text
 [ ] Geoapify places can be used in generated routes
 [ ] Manual places can be used in generated routes
+```
+
+---
+
+## 16.4 Check Duplicate Places Across Days
+
+```sql
+SELECT 
+    p.place_name,
+    COUNT(*) AS used_count
+FROM route_item ri
+JOIN place p ON ri.place_id = p.place_id
+GROUP BY p.place_name
+HAVING COUNT(*) > 1;
+```
+
+### Expected Result
+
+```text
+[ ] Query should return no rows
+[ ] A place should not be repeated across different days in the same full route
 ```
 
 ---
@@ -1421,15 +1558,22 @@ The backend API can be considered feature-complete for the current phase if all 
 [ ] Weak POIs are filtered out
 [ ] Duplicate imports are skipped
 [ ] Weather current endpoint works
-[ ] Weather endpoint validates missing coordinates
-[ ] Weather endpoint validates invalid coordinates
-[ ] Weather endpoint requires authentication
+[ ] Weather current endpoint validates missing coordinates
+[ ] Weather current endpoint validates invalid coordinates
+[ ] Weather forecast endpoint works
+[ ] Forecast endpoint validates missing date range
+[ ] Forecast endpoint validates invalid coordinates
+[ ] Weather endpoints require authentication
 [ ] Full route generation works
 [ ] Single day route generation works
 [ ] Hotel-based start works
 [ ] Return-to-hotel calculation works
 [ ] Recommendation score is returned
-[ ] Weather-aware recommendation score works
+[ ] Forecast-aware recommendation score works
+[ ] Full route generation uses forecast-aware weather scoring
+[ ] Single day route generation uses forecast-aware weather scoring
+[ ] Daily summaries include day-specific weather context
+[ ] Same place is not repeated across full route days
 [ ] route_mode works
 [ ] route_quality_note is returned
 [ ] weather_context is returned
@@ -1458,15 +1602,17 @@ Use this order when testing from a clean database state:
 8. Import Geoapify nature places
 9. Check place category/source distribution with SQL
 10. Test weather current endpoint
-11. Generate full route with balanced mode
-12. Generate full route with shortest mode
-13. Generate full route with recommended mode
-14. Check weather_context and weather_note in route summary
-15. Test weather-aware route scoring
-16. Test manual weight override
-17. Test single day route generation
-18. Test short time window
-19. Test duplicate Geoapify import
-20. Test authorization with another user
-21. Verify database state with SQL
+11. Test weather forecast endpoint
+12. Generate full route with balanced mode
+13. Generate full route with shortest mode
+14. Generate full route with recommended mode
+15. Check forecast weather_context and weather_note in route summary
+16. Check each day_plan daily_summary weather_context
+17. Test forecast-aware route scoring
+18. Test manual weight override
+19. Test single day route generation
+20. Test short time window
+21. Test duplicate Geoapify import
+22. Test authorization with another user
+23. Verify database state with SQL
 ```

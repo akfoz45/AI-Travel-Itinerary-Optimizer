@@ -34,3 +34,55 @@ class CurrentWeatherAPIView(APIView):
                 {"error": str(error)},
                 status=400
             )
+
+class ForecasWeatherAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        latitude = request.query_params.get("latitude")
+        longitude = request.query_params.get("longitude")
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+
+        if not latitude or not longitude:
+            return Response(
+                {
+                    "error": "latitude and longitude query parameters are required."
+                },
+                status=400
+            )
+        
+        if not start_date or not end_date:
+            return Response(
+                {
+                    "error": "start_date and end_date query parameters are required."
+                },
+                status=400
+            )
+        
+        try:
+            latitude= float(latitude)
+            longitude= (longitude)
+        except ValueError as error:
+            return Response(
+                {"error": str(error)},
+                status=400
+            )
+        
+        try:
+            service = OpenMeteoWeatherService()
+
+            result = service.get_daily_forecast_by_coordinates(
+                latitude=latitude,
+                longitude=longitude,
+                start_date=start_date,
+                end_date=end_date,
+            )
+
+            return Response(result)
+        
+        except ValueError as error:
+            return Response(
+                {"error": str(error)},
+                status=400
+            )

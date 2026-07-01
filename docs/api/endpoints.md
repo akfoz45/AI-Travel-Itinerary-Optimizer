@@ -194,8 +194,8 @@ Required.
   {
     "trip_id": 1,
     "destination": "Kotor, Montenegro",
-    "start_date": "2026-04-10",
-    "end_date": "2026-04-12"
+    "start_date": "2026-07-01",
+    "end_date": "2026-07-03"
   }
 ]
 ```
@@ -221,8 +221,8 @@ Required.
 ```json
 {
   "destination": "Kotor, Montenegro",
-  "start_date": "2026-04-10",
-  "end_date": "2026-04-12",
+  "start_date": "2026-07-01",
+  "end_date": "2026-07-03",
   "preferences": ["nature", "history"]
 }
 ```
@@ -233,8 +233,8 @@ Required.
 {
   "trip_id": 1,
   "destination": "Kotor, Montenegro",
-  "start_date": "2026-04-10",
-  "end_date": "2026-04-12",
+  "start_date": "2026-07-01",
+  "end_date": "2026-07-03",
   "preferences": [
     {
       "preference_id": 1,
@@ -270,8 +270,8 @@ Required.
 {
   "trip_id": 1,
   "destination": "Kotor, Montenegro",
-  "start_date": "2026-04-10",
-  "end_date": "2026-04-12",
+  "start_date": "2026-07-01",
+  "end_date": "2026-07-03",
   "preferences": [
     {
       "preference_id": 1,
@@ -323,7 +323,7 @@ Required.
 
 Returns normalized current weather data using Open-Meteo.
 
-This endpoint is used to check current weather conditions for a location. The route optimizer can use this data to adjust recommendation scores.
+This endpoint is used to check current weather conditions for a location. Current weather is available as a standalone API, but route generation primarily uses forecast data.
 
 ### Endpoint
 
@@ -396,7 +396,116 @@ Invalid coordinate format:
 - The project currently uses Open-Meteo.
 - Open-Meteo does not require an API key for this basic usage.
 - Weather data is normalized before being returned to the client.
-- The route optimizer uses hotel coordinates to fetch weather when generating weather-aware routes.
+- Current weather is useful for testing and simple weather display.
+- Forecast data is used by route generation.
+
+---
+
+## Get Daily Weather Forecast by Coordinates
+
+Returns normalized daily weather forecast data using Open-Meteo.
+
+This endpoint is used to fetch forecast data for a date range. The route optimizer can use this data to adjust recommendation scores for each trip day.
+
+### Endpoint
+
+```http
+GET /api/weather/forecast/?latitude=42.425&longitude=18.771&start_date=2026-07-01&end_date=2026-07-03
+```
+
+### Authentication
+
+Required.
+
+```http
+Authorization: Bearer <access_token>
+```
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---:|---:|---|
+| `latitude` | float | Yes | Latitude of the location. |
+| `longitude` | float | Yes | Longitude of the location. |
+| `start_date` | date | Yes | Forecast start date in `YYYY-MM-DD` format. |
+| `end_date` | date | Yes | Forecast end date in `YYYY-MM-DD` format. |
+
+### Example Request
+
+```http
+GET /api/weather/forecast/?latitude=42.425&longitude=18.771&start_date=2026-07-01&end_date=2026-07-03
+```
+
+### Example Response
+
+```json
+{
+  "latitude": 42.42,
+  "longitude": 18.78,
+  "timezone": "Europe/Podgorica",
+  "daily_forecast": [
+    {
+      "date": "2026-07-01",
+      "weather_code": 1,
+      "weather_description": "Mainly clear",
+      "temperature_max": 27.1,
+      "temperature_min": 18.4,
+      "precipitation_sum": 0,
+      "rain_sum": 0,
+      "wind_speed_max": 12.3,
+      "is_rainy": false,
+      "is_good_for_outdoor": true
+    },
+    {
+      "date": "2026-07-02",
+      "weather_code": 61,
+      "weather_description": "Slight rain",
+      "temperature_max": 22.5,
+      "temperature_min": 16.2,
+      "precipitation_sum": 3.4,
+      "rain_sum": 3.4,
+      "wind_speed_max": 18.7,
+      "is_rainy": true,
+      "is_good_for_outdoor": false
+    }
+  ]
+}
+```
+
+### Error Responses
+
+Missing coordinates:
+
+```json
+{
+  "error": "latitude and longitude query parameters are required."
+}
+```
+
+Missing date range:
+
+```json
+{
+  "error": "start_date and end_date query parameters are required."
+}
+```
+
+Invalid coordinate format:
+
+```json
+{
+  "error": "latitude and longitude must be valid numbers."
+}
+```
+
+### Notes
+
+- The project currently uses Open-Meteo daily forecast data.
+- Open-Meteo does not require an API key for this basic usage.
+- Forecast data is normalized before being returned to the client.
+- Full route generation uses forecast data for the trip date range.
+- Single-day route generation uses forecast data for the selected day.
+- If forecast data is unavailable, route generation continues without weather adjustment.
 
 ---
 
@@ -407,6 +516,8 @@ Invalid coordinate format:
 Generates a route for a specific day of a trip.
 
 This endpoint is useful when the client wants to manually create or regenerate only one day.
+
+Single-day route generation uses forecast data for the selected `date`.
 
 ### Endpoint
 
@@ -427,7 +538,7 @@ Authorization: Bearer <access_token>
 ```json
 {
   "day_number": 1,
-  "date": "2026-04-10",
+  "date": "2026-07-02",
   "categories": ["nature", "history"],
   "start_time": "09:00",
   "end_time": "18:00",
@@ -466,7 +577,7 @@ Example:
 ```json
 {
   "day_number": 1,
-  "date": "2026-04-10",
+  "date": "2026-07-02",
   "categories": ["nature", "history"],
   "start_time": "09:00",
   "end_time": "18:00",
@@ -485,7 +596,7 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
   "message": "Route generated successfully.",
   "summary": {
     "day_number": 1,
-    "date": "2026-04-10",
+    "date": "2026-07-02",
     "number_of_places": 4,
     "total_distance_km": 18.4,
     "total_travel_time_minutes": 37,
@@ -500,34 +611,37 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
     "hotel_used_as_start": "Hotel Example",
     "selected_start_place": "Kotor Old Town",
     "start_place_source": "hotel_nearest_place",
-    "route_algorithm": "score_based_nearest_neighbor",
+    "route_algorithm": "forecast_aware_score_based_nearest_neighbor",
     "route_mode": "recommended",
     "route_quality_note": "This route prioritizes places with higher recommendation scores.",
     "distance_weight": 0.8,
     "score_weight": 0.6,
+    "weather_source": "forecast",
+    "weather_forecast_available": true,
+    "weather_forecast_dates": [
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03"
+    ],
     "weather_used_for_scoring": true,
     "weather_context": {
-      "latitude": 42.42,
-      "longitude": 18.78,
-      "timezone": "Europe/Podgorica",
-      "time": "2026-06-30T14:15",
-      "temperature": 26.1,
-      "apparent_temperature": 27.3,
-      "humidity": 52,
-      "precipitation": 0,
-      "rain": 0,
-      "wind_speed": 10.4,
-      "weather_code": 1,
-      "weather_description": "Mainly clear",
-      "is_rainy": false,
-      "is_good_for_outdoor": true
+      "date": "2026-07-02",
+      "weather_code": 61,
+      "weather_description": "Slight rain",
+      "temperature_max": 22.5,
+      "temperature_min": 16.2,
+      "precipitation_sum": 3.4,
+      "rain_sum": 3.4,
+      "wind_speed_max": 18.7,
+      "is_rainy": true,
+      "is_good_for_outdoor": false
     },
-    "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
+    "weather_note": "Rainy weather detected (Slight rain). Outdoor places received a score penalty, while indoor-friendly places received a score bonus."
   },
   "day_plan": {
     "plan_id": 5,
     "day_number": 1,
-    "date": "2026-04-10",
+    "date": "2026-07-02",
     "daily_summary": {
       "day_number": 1,
       "number_of_places": 4,
@@ -537,12 +651,12 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
       {
         "route_id": 12,
         "visit_order": 1,
-        "place_name": "Lovcen National Park",
-        "category": "Nature",
+        "place_name": "Maritime Museum",
+        "category": "Museum",
         "source": "geoapify",
-        "recommendation_score": 115,
+        "recommendation_score": 105,
         "arrival_time": "09:30:00",
-        "departure_time": "12:30:00"
+        "departure_time": "11:30:00"
       }
     ]
   }
@@ -552,10 +666,12 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
 ### Notes
 
 - This endpoint creates or regenerates one specific day plan.
-- The optimizer uses the selected categories, route mode, hotel location, travel distance, recommendation score, and weather context.
+- The optimizer uses selected categories, route mode, hotel location, travel distance, recommendation score, and forecast weather context.
+- Single-day route generation uses forecast data for the selected `date`.
+- If forecast data is unavailable for the selected date, route generation continues without weather adjustment.
 - If the trip has a hotel and `start_place` is not provided, the route starts from the nearest suitable place to the hotel.
 - Places that cannot fit into the selected time window are returned in `unplanned_places`.
-- Weather data is optional. If it cannot be fetched, route generation still continues.
+- The single-day route algorithm is currently `forecast_aware_score_based_nearest_neighbor`.
 
 ---
 
@@ -572,7 +688,7 @@ The route optimizer considers:
 - travel distance between places
 - recommendation score
 - selected route mode
-- current weather context
+- daily forecast weather context
 
 ### Endpoint
 
@@ -661,41 +777,56 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
     "hotel_used_as_start": "Hotel Example",
     "selected_start_place": "Kotor Old Town",
     "start_place_source": "hotel_nearest_place",
-    "route_algorithm": "score_based_nearest_neighbor",
+    "route_algorithm": "daily_weather_aware_score_based_nearest_neighbor",
     "route_mode": "balanced",
     "route_quality_note": "This route balances travel distance and recommendation score.",
     "distance_weight": 1.0,
     "score_weight": 0.3,
+    "weather_source": "forecast",
+    "weather_forecast_available": true,
+    "weather_forecast_dates": [
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03"
+    ],
     "weather_used_for_scoring": true,
     "weather_context": {
-      "latitude": 42.42,
-      "longitude": 18.78,
-      "timezone": "Europe/Podgorica",
-      "time": "2026-06-30T14:15",
-      "temperature": 26.1,
-      "apparent_temperature": 27.3,
-      "humidity": 52,
-      "precipitation": 0,
-      "rain": 0,
-      "wind_speed": 10.4,
+      "date": "2026-07-01",
       "weather_code": 1,
       "weather_description": "Mainly clear",
+      "temperature_max": 27.1,
+      "temperature_min": 18.4,
+      "precipitation_sum": 0,
+      "rain_sum": 0,
+      "wind_speed_max": 12.3,
       "is_rainy": false,
       "is_good_for_outdoor": true
     },
-    "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
+    "weather_note": "Good outdoor weather detected (Mainly clear, 27.1°C). Nature and tourism places received a score bonus."
   },
   "day_plans": [
     {
       "plan_id": 1,
       "day_number": 1,
-      "date": "2026-04-10",
+      "date": "2026-07-01",
       "daily_summary": {
         "day_number": 1,
+        "date": "2026-07-01",
         "number_of_places": 3,
         "total_distance_km": 15.2,
         "total_travel_time_minutes": 31,
-        "total_visit_duration_minutes": 240
+        "total_visit_duration_minutes": 240,
+        "return_to_hotel_distance_km": 4.2,
+        "return_to_hotel_minutes": 9,
+        "route_algorithm": "daily_weather_aware_score_based_nearest_neighbor",
+        "weather_used_for_scoring": true,
+        "weather_context": {
+          "date": "2026-07-01",
+          "weather_description": "Mainly clear",
+          "is_rainy": false,
+          "is_good_for_outdoor": true
+        },
+        "weather_note": "Good outdoor weather detected. Nature and tourism places received a score bonus."
       },
       "route_items": [
         {
@@ -718,11 +849,11 @@ In this case, the route mode is still shown as `recommended`, but the custom wei
 
 - Existing day plans and route items for the trip are deleted before generating a new full route.
 - If the trip has a hotel and `start_place` is not provided, the optimizer starts from the nearest suitable place to the hotel.
-- If there is not enough time in a day, remaining places are moved to following days.
+- Full route generation uses forecast data for the trip date range.
+- Each day plan can include its own `weather_context`.
+- If forecast data cannot be fetched, route generation still succeeds without weather adjustment.
 - Places that cannot fit into the trip duration are returned in `unplanned_places`.
-- The route algorithm is currently `score_based_nearest_neighbor`.
-- Weather is fetched using the trip hotel's coordinates.
-- If weather data cannot be fetched, route generation still succeeds without weather adjustment.
+- The full route algorithm is currently `daily_weather_aware_score_based_nearest_neighbor`.
 
 ---
 
@@ -952,7 +1083,7 @@ The score is calculated using:
 - rating, if available
 - place source
 - estimated visit duration sanity
-- current weather context, if available
+- forecast weather context, if available
 
 Example scoring logic:
 
@@ -971,11 +1102,21 @@ The score is not stored permanently in the database. It is calculated during req
 
 ---
 
-## Weather-Aware Route Scoring
+## Forecast-Aware Route Scoring
 
-The route optimizer can use current weather data when generating a route.
+The route optimizer supports forecast-aware scoring.
 
-If the trip has a hotel, the hotel latitude and longitude are used to fetch current weather data.
+For full route generation, the backend fetches daily forecast data for the full trip date range using the trip hotel's coordinates. Each day plan can receive its own weather context.
+
+For single-day route generation, the backend fetches forecast data for the trip date range and selects the weather context matching the requested `date`.
+
+Current weather is still available through:
+
+```http
+GET /api/weather/current/
+```
+
+However, route generation primarily uses forecast data.
 
 Weather affects recommendation scores as follows:
 
@@ -989,35 +1130,33 @@ Weather affects recommendation scores as follows:
 
 ### Weather Fields in Route Summary
 
-Route generation responses may include:
-
 ```json
 {
+  "weather_source": "forecast",
+  "weather_forecast_available": true,
+  "weather_forecast_dates": [
+    "2026-07-01",
+    "2026-07-02",
+    "2026-07-03"
+  ],
   "weather_used_for_scoring": true,
   "weather_context": {
-    "latitude": 42.42,
-    "longitude": 18.78,
-    "timezone": "Europe/Podgorica",
-    "time": "2026-06-30T14:15",
-    "temperature": 26.1,
-    "apparent_temperature": 27.3,
-    "humidity": 52,
-    "precipitation": 0,
-    "rain": 0,
-    "wind_speed": 10.4,
-    "weather_code": 1,
+    "date": "2026-07-01",
     "weather_description": "Mainly clear",
     "is_rainy": false,
     "is_good_for_outdoor": true
   },
-  "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
+  "weather_note": "Good outdoor weather detected. Nature and tourism places received a score bonus."
 }
 ```
 
-If weather data is not available:
+If forecast data is not available:
 
 ```json
 {
+  "weather_source": "forecast",
+  "weather_forecast_available": false,
+  "weather_forecast_dates": [],
   "weather_used_for_scoring": false,
   "weather_context": null,
   "weather_note": "Weather data was not available. Route was generated without weather adjustment."
@@ -1026,22 +1165,24 @@ If weather data is not available:
 
 ### Notes
 
-- Weather is currently fetched during route generation.
 - Weather data is not stored permanently in the database.
 - If the weather API fails, route generation still continues.
 - Weather is used as an adjustment factor, not as the only decision factor.
+- Full route generation can use day-specific weather context.
+- Single-day route generation uses the weather context matching the selected date.
 
 ---
 
 ## Score-Based Nearest Neighbor
 
-The current route algorithm is:
+The current route algorithms are:
 
 ```text
-score_based_nearest_neighbor
+forecast_aware_score_based_nearest_neighbor
+daily_weather_aware_score_based_nearest_neighbor
 ```
 
-It uses both distance and recommendation score.
+They use both distance and recommendation score.
 
 Simplified formula:
 
@@ -1089,6 +1230,17 @@ JOIN place p ON ri.place_id = p.place_id
 ORDER BY dp.day_number, ri.visit_order;
 ```
 
+## Check Route Item Count by Source
+
+```sql
+SELECT 
+    p.source,
+    COUNT(*) AS route_item_count
+FROM route_item ri
+JOIN place p ON ri.place_id = p.place_id
+GROUP BY p.source;
+```
+
 ## Clear Generated Routes
 
 ```sql
@@ -1115,12 +1267,17 @@ WHERE source = 'geoapify';
 - Place quality filtering
 - Recommendation score calculation
 - Score-aware nearest neighbor route algorithm
+- Forecast-aware single-day route scoring
+- Daily weather-aware full route generation
 - Route modes:
   - `balanced`
   - `shortest`
   - `recommended`
 - Manual distance and score weight override
-- Weather-aware route scoring with Open-Meteo
-- Weather-based recommendation score adjustment
+- Weather API integration with Open-Meteo
+- Current weather endpoint
+- Daily forecast endpoint
+- Forecast-based recommendation score adjustment
+- Day-specific weather context in route response
 - Route quality explanation in API response
 - Weather explanation note in route response
