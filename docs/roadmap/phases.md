@@ -318,39 +318,94 @@ docs/api/postman-test-checklist.md
 
 ## Status
 
-Planned
+Completed for current backend phase
 
 ## Goal
 
-Integrate weather data into the travel planning process.
+Integrate weather data into the travel planning process and use weather conditions to adjust route recommendation scores.
 
-## Planned Work
+## Completed Work
 
-- Add weather API integration
-- Fetch weather by city and date
-- Store or cache weather data if needed
-- Adjust route recommendations based on weather
-- Prefer indoor places during bad weather
-- Prefer outdoor/nature places during good weather
-- Add weather information to route response
+- Weather app created
+- Open-Meteo selected as the weather provider
+- API-key-free weather integration added
+- Current weather endpoint created
+- Weather data normalized for internal use
+- Weather context added to route generation
+- Weather-aware recommendation score adjustment added
+- Rainy weather detection added
+- Outdoor suitability detection added
+- Weather note added to route response
+- API documentation updated
+- Postman test checklist updated
 
-## Possible Features
+## Main Endpoint
 
-```text
-Rainy day adjustment
-Outdoor activity penalty
-Indoor activity bonus
-Daily weather summary
-Weather-aware recommendation score
+```http
+GET /api/weather/current/?latitude=42.425&longitude=18.771
 ```
 
-## Possible External APIs
+## Current Weather Provider
 
 ```text
-OpenWeather
-WeatherAPI
-Meteostat
+Open-Meteo
 ```
+
+## Weather Data Used
+
+```text
+temperature
+apparent_temperature
+humidity
+precipitation
+rain
+wind_speed
+weather_code
+weather_description
+is_rainy
+is_good_for_outdoor
+```
+
+## Weather-Aware Route Behavior
+
+| Weather Condition | Route Effect |
+|---|---|
+| Rainy weather | Outdoor categories such as `Nature` and `Tourism` receive a score penalty. |
+| Rainy weather | Indoor-friendly categories such as `Museum`, `Religious`, and `Food` receive a score bonus. |
+| Good outdoor weather | `Nature` places receive a score bonus. |
+| Good outdoor weather | `Tourism` places receive a smaller score bonus. |
+| Weather unavailable | Route is generated without weather adjustment. |
+
+## Response Fields Added to Route Summary
+
+```json
+{
+  "weather_used_for_scoring": true,
+  "weather_context": {
+    "temperature": 26.1,
+    "weather_description": "Mainly clear",
+    "is_rainy": false,
+    "is_good_for_outdoor": true
+  },
+  "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
+}
+```
+
+## Remaining / Future Improvements
+
+- Use forecast data instead of only current weather
+- Match weather forecast to each trip day
+- Add date-based weather scoring
+- Add indoor/outdoor metadata to places
+- Cache weather responses to reduce repeated API calls
+- Add weather fallback behavior for unavailable APIs
+- Add weather-based explanations per day plan
+
+## Notes
+
+The current implementation uses current weather data from Open-Meteo and applies it during route generation.
+
+This is enough for the current backend phase, but future versions should use forecast data for multi-day trips.
 
 ---
 
@@ -514,6 +569,11 @@ The backend currently supports:
 [✓] Route quality notes
 [✓] API documentation
 [✓] Postman test checklist
+[✓] Weather API integration with Open-Meteo
+[✓] Current weather endpoint
+[✓] Weather-aware recommendation scoring
+[✓] Weather context in route summary
+[✓] Weather note in route response
 ```
 
 ---
@@ -526,6 +586,6 @@ The next recommended tasks are:
 1. Run the full Postman test checklist
 2. Fix bugs found during testing
 3. Commit stable backend changes
-4. Add weather integration planning
+4. Improve weather integration with forecast-based scoring
 5. Start mobile app planning
 ```

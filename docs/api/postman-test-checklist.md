@@ -386,6 +386,12 @@ POST /api/external/geoapify/import-places/
 
 ## 6.2 Import History Places
 
+### Endpoint
+
+```http
+POST /api/external/geoapify/import-places/
+```
+
 ### Body
 
 ```json
@@ -409,6 +415,12 @@ POST /api/external/geoapify/import-places/
 ---
 
 ## 6.3 Import Nature Places
+
+### Endpoint
+
+```http
+POST /api/external/geoapify/import-places/
+```
 
 ### Body
 
@@ -523,9 +535,137 @@ ORDER BY place_id DESC;
 
 ---
 
-# 8. Recommendation Score Tests
+# 8. Weather API Tests
 
-## 8.1 Generate Route and Check Scores
+## 8.1 Get Current Weather by Coordinates
+
+### Endpoint
+
+```http
+GET /api/weather/current/?latitude=42.425&longitude=18.771
+```
+
+### Authentication
+
+Required.
+
+```http
+Authorization: Bearer <access_token>
+```
+
+### Expected Result
+
+```text
+[ ] Request succeeds with valid JWT token
+[ ] Response includes latitude
+[ ] Response includes longitude
+[ ] Response includes timezone
+[ ] Response includes time
+[ ] Response includes temperature
+[ ] Response includes apparent_temperature
+[ ] Response includes humidity
+[ ] Response includes precipitation
+[ ] Response includes rain
+[ ] Response includes wind_speed
+[ ] Response includes weather_code
+[ ] Response includes weather_description
+[ ] Response includes is_rainy
+[ ] Response includes is_good_for_outdoor
+```
+
+### Example Expected Response
+
+```json
+{
+  "latitude": 42.42,
+  "longitude": 18.78,
+  "timezone": "Europe/Podgorica",
+  "time": "2026-06-30T14:15",
+  "temperature": 26.1,
+  "apparent_temperature": 27.3,
+  "humidity": 52,
+  "precipitation": 0,
+  "rain": 0,
+  "wind_speed": 10.4,
+  "weather_code": 1,
+  "weather_description": "Mainly clear",
+  "is_rainy": false,
+  "is_good_for_outdoor": true
+}
+```
+
+---
+
+## 8.2 Missing Weather Coordinates
+
+### Endpoint
+
+```http
+GET /api/weather/current/
+```
+
+### Expected Result
+
+```text
+[ ] API returns validation error
+[ ] Response says latitude and longitude are required
+```
+
+### Expected Response
+
+```json
+{
+  "error": "latitude and longitude query parameters are required."
+}
+```
+
+---
+
+## 8.3 Invalid Weather Coordinates
+
+### Endpoint
+
+```http
+GET /api/weather/current/?latitude=abc&longitude=test
+```
+
+### Expected Result
+
+```text
+[ ] API returns validation error
+[ ] Response says latitude and longitude must be valid numbers
+```
+
+### Expected Response
+
+```json
+{
+  "error": "latitude and longitude must be valid numbers."
+}
+```
+
+---
+
+## 8.4 Weather Endpoint Without Token
+
+### Endpoint
+
+```http
+GET /api/weather/current/?latitude=42.425&longitude=18.771
+```
+
+### Expected Result
+
+```text
+[ ] API returns authentication error
+[ ] Weather data is not returned
+```
+
+---
+
+# 9. Recommendation Score Tests
+
+## 9.1 Generate Route and Check Scores
 
 ### Endpoint
 
@@ -558,7 +698,7 @@ POST /api/trips/{trip_id}/generate-full-route/
 
 ---
 
-## 8.2 Compare Scores by Category
+## 9.2 Compare Scores by Category
 
 Test with:
 
@@ -580,9 +720,9 @@ Test with:
 
 ---
 
-# 9. Route Mode Tests
+# 10. Route Mode Tests
 
-## 9.1 Balanced Route
+## 10.1 Balanced Route
 
 ### Body
 
@@ -607,7 +747,7 @@ Test with:
 
 ---
 
-## 9.2 Shortest Route
+## 10.2 Shortest Route
 
 ### Body
 
@@ -632,7 +772,7 @@ Test with:
 
 ---
 
-## 9.3 Recommended Route
+## 10.3 Recommended Route
 
 ### Body
 
@@ -657,7 +797,7 @@ Test with:
 
 ---
 
-## 9.4 Invalid Route Mode
+## 10.4 Invalid Route Mode
 
 ### Body
 
@@ -680,9 +820,9 @@ Test with:
 
 ---
 
-# 10. Manual Weight Override Tests
+# 11. Manual Weight Override Tests
 
-## 10.1 Override Recommended Mode
+## 11.1 Override Recommended Mode
 
 ### Body
 
@@ -709,7 +849,7 @@ Test with:
 
 ---
 
-## 10.2 Negative Distance Weight
+## 11.2 Negative Distance Weight
 
 ### Body
 
@@ -732,7 +872,7 @@ Test with:
 
 ---
 
-## 10.3 Negative Score Weight
+## 11.3 Negative Score Weight
 
 ### Body
 
@@ -755,9 +895,166 @@ Test with:
 
 ---
 
-# 11. Full Route Generation Tests
+# 12. Weather-Aware Route Tests
 
-## 11.1 Generate Full Route
+## 12.1 Full Route Uses Weather Context
+
+### Endpoint
+
+```http
+POST /api/trips/{trip_id}/generate-full-route/
+```
+
+### Body
+
+```json
+{
+  "categories": ["nature", "museum", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "recommended"
+}
+```
+
+### Expected Result
+
+```text
+[ ] Route is generated successfully
+[ ] summary includes weather_used_for_scoring
+[ ] summary includes weather_context
+[ ] summary includes weather_note
+[ ] If trip has a hotel, weather_used_for_scoring should be true
+[ ] If weather API fails, route generation still succeeds
+```
+
+### Expected Weather Fields
+
+```json
+{
+  "weather_used_for_scoring": true,
+  "weather_context": {
+    "temperature": 26.1,
+    "weather_description": "Mainly clear",
+    "is_rainy": false,
+    "is_good_for_outdoor": true
+  },
+  "weather_note": "Good outdoor weather detected (Mainly clear, 26.1°C). Nature and tourism places received a score bonus."
+}
+```
+
+---
+
+## 12.2 Single Day Route Uses Weather Context
+
+### Endpoint
+
+```http
+POST /api/trips/{trip_id}/generate-route/
+```
+
+### Body
+
+```json
+{
+  "day_number": 1,
+  "date": "2026-04-10",
+  "categories": ["nature", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "recommended"
+}
+```
+
+### Expected Result
+
+```text
+[ ] Single day route is generated successfully
+[ ] summary includes weather_used_for_scoring
+[ ] summary includes weather_context
+[ ] summary includes weather_note
+[ ] recommendation_score reflects weather adjustment
+```
+
+---
+
+## 12.3 Route Generation Without Hotel
+
+Generate a route for a trip that has no hotel record.
+
+### Body
+
+```json
+{
+  "start_place": "Kotor Old Town",
+  "categories": ["nature", "history"],
+  "start_time": "09:00",
+  "end_time": "18:00",
+  "route_mode": "recommended"
+}
+```
+
+### Expected Result
+
+```text
+[ ] Route generation still works if start_place is provided
+[ ] weather_used_for_scoring is false
+[ ] weather_context is null
+[ ] weather_note says weather data was not available
+```
+
+### Expected Weather Fields
+
+```json
+{
+  "weather_used_for_scoring": false,
+  "weather_context": null,
+  "weather_note": "Weather data was not available. Route was generated without weather adjustment."
+}
+```
+
+---
+
+## 12.4 Weather-Aware Score Check: Good Weather
+
+When `is_good_for_outdoor = true`:
+
+```text
+[ ] Nature places receive weather bonus
+[ ] Tourism places receive smaller weather bonus
+[ ] Museum places are not strongly boosted by good outdoor weather
+```
+
+Expected behavior:
+
+```text
+Nature score > Tourism score > unrelated category score
+```
+
+---
+
+## 12.5 Weather-Aware Score Check: Rainy Weather
+
+When `is_rainy = true`:
+
+```text
+[ ] Nature places receive weather penalty
+[ ] Tourism places receive weather penalty
+[ ] Museum places receive weather bonus
+[ ] Religious places receive weather bonus
+[ ] Food places receive weather bonus
+```
+
+Expected behavior:
+
+```text
+Indoor-friendly places should become more competitive in the route.
+```
+
+---
+
+# 13. Full Route Generation Tests
+
+## 13.1 Generate Full Route
 
 ### Endpoint
 
@@ -789,11 +1086,14 @@ POST /api/trips/{trip_id}/generate-full-route/
 [ ] summary includes route_algorithm
 [ ] summary includes route_mode
 [ ] summary includes route_quality_note
+[ ] summary includes weather_used_for_scoring
+[ ] summary includes weather_context
+[ ] summary includes weather_note
 ```
 
 ---
 
-## 11.2 Existing Day Plans Are Replaced
+## 13.2 Existing Day Plans Are Replaced
 
 Run the same full route request twice.
 
@@ -809,7 +1109,7 @@ Run the same full route request twice.
 
 ---
 
-## 11.3 Hotel-Based Start
+## 13.3 Hotel-Based Start
 
 Generate route without `start_place`.
 
@@ -831,11 +1131,12 @@ Generate route without `start_place`.
 [ ] summary.hotel_used_as_start is not null
 [ ] summary.start_place_source = hotel_nearest_place
 [ ] selected_start_place is the nearest suitable place to hotel
+[ ] weather is fetched using hotel coordinates
 ```
 
 ---
 
-## 11.4 User-Provided Start Place
+## 13.4 User-Provided Start Place
 
 ### Body
 
@@ -859,7 +1160,7 @@ Generate route without `start_place`.
 
 ---
 
-## 11.5 Return to Hotel Calculation
+## 13.5 Return to Hotel Calculation
 
 ### Expected Result
 
@@ -872,7 +1173,7 @@ Generate route without `start_place`.
 
 ---
 
-## 11.6 Unplanned Places
+## 13.6 Unplanned Places
 
 Use a short time window.
 
@@ -898,9 +1199,9 @@ Use a short time window.
 
 ---
 
-# 12. Single Day Route Generation Tests
+# 14. Single Day Route Generation Tests
 
-## 12.1 Generate Single Day Route
+## 14.1 Generate Single Day Route
 
 ### Endpoint
 
@@ -931,11 +1232,14 @@ POST /api/trips/{trip_id}/generate-route/
 [ ] recommendation_score is returned
 [ ] route_mode is returned
 [ ] route_quality_note is returned
+[ ] weather_used_for_scoring is returned
+[ ] weather_context is returned
+[ ] weather_note is returned
 ```
 
 ---
 
-## 12.2 Short Single Day Time Window
+## 14.2 Short Single Day Time Window
 
 ### Body
 
@@ -961,9 +1265,9 @@ POST /api/trips/{trip_id}/generate-route/
 
 ---
 
-# 13. Authorization and Ownership Tests
+# 15. Authorization and Ownership Tests
 
-## 13.1 Access Trip Owned by Another User
+## 15.1 Access Trip Owned by Another User
 
 ### Expected Result
 
@@ -975,7 +1279,7 @@ POST /api/trips/{trip_id}/generate-route/
 
 ---
 
-## 13.2 Missing Token
+## 15.2 Missing Token
 
 Call protected endpoint without Authorization header.
 
@@ -988,7 +1292,7 @@ Call protected endpoint without Authorization header.
 
 ---
 
-## 13.3 Invalid Token
+## 15.3 Invalid Token
 
 Call protected endpoint with invalid token.
 
@@ -1001,9 +1305,9 @@ Call protected endpoint with invalid token.
 
 ---
 
-# 14. SQL Verification for Generated Routes
+# 16. SQL Verification for Generated Routes
 
-## 14.1 Check Route Items
+## 16.1 Check Route Items
 
 ```sql
 SELECT 
@@ -1033,7 +1337,7 @@ ORDER BY dp.day_number, ri.visit_order;
 
 ---
 
-## 14.2 Check Number of Day Plans
+## 16.2 Check Number of Day Plans
 
 ```sql
 SELECT trip_id, COUNT(*) AS day_plan_count
@@ -1050,7 +1354,7 @@ GROUP BY trip_id;
 
 ---
 
-## 14.3 Check Route Item Count by Source
+## 16.3 Check Route Item Count by Source
 
 ```sql
 SELECT 
@@ -1070,9 +1374,9 @@ GROUP BY p.source;
 
 ---
 
-# 15. Cleanup Queries
+# 17. Cleanup Queries
 
-## 15.1 Clear Generated Routes
+## 17.1 Clear Generated Routes
 
 ```sql
 DELETE FROM route_item;
@@ -1081,7 +1385,7 @@ DELETE FROM day_plan;
 
 ---
 
-## 15.2 Clear Geoapify Places Only
+## 17.2 Clear Geoapify Places Only
 
 ```sql
 DELETE FROM place
@@ -1090,7 +1394,7 @@ WHERE source = 'geoapify';
 
 ---
 
-## 15.3 Full Cleanup for Route Testing
+## 17.3 Full Cleanup for Route Testing
 
 ```sql
 DELETE FROM route_item;
@@ -1101,7 +1405,7 @@ WHERE source = 'geoapify';
 
 ---
 
-# 16. API Completion Criteria
+# 18. API Completion Criteria
 
 The backend API can be considered feature-complete for the current phase if all of the following are true:
 
@@ -1116,13 +1420,20 @@ The backend API can be considered feature-complete for the current phase if all 
 [ ] Imported places store source and source_place_id
 [ ] Weak POIs are filtered out
 [ ] Duplicate imports are skipped
+[ ] Weather current endpoint works
+[ ] Weather endpoint validates missing coordinates
+[ ] Weather endpoint validates invalid coordinates
+[ ] Weather endpoint requires authentication
 [ ] Full route generation works
 [ ] Single day route generation works
 [ ] Hotel-based start works
 [ ] Return-to-hotel calculation works
 [ ] Recommendation score is returned
+[ ] Weather-aware recommendation score works
 [ ] route_mode works
 [ ] route_quality_note is returned
+[ ] weather_context is returned
+[ ] weather_note is returned
 [ ] Manual weight override works
 [ ] Invalid route_mode is rejected
 [ ] Invalid negative weights are rejected
@@ -1132,7 +1443,7 @@ The backend API can be considered feature-complete for the current phase if all 
 
 ---
 
-# 17. Recommended Test Order
+# 19. Recommended Test Order
 
 Use this order when testing from a clean database state:
 
@@ -1146,13 +1457,16 @@ Use this order when testing from a clean database state:
 7. Import Geoapify history places
 8. Import Geoapify nature places
 9. Check place category/source distribution with SQL
-10. Generate full route with balanced mode
-11. Generate full route with shortest mode
-12. Generate full route with recommended mode
-13. Test manual weight override
-14. Test single day route generation
-15. Test short time window
-16. Test duplicate Geoapify import
-17. Test authorization with another user
-18. Verify database state with SQL
+10. Test weather current endpoint
+11. Generate full route with balanced mode
+12. Generate full route with shortest mode
+13. Generate full route with recommended mode
+14. Check weather_context and weather_note in route summary
+15. Test weather-aware route scoring
+16. Test manual weight override
+17. Test single day route generation
+18. Test short time window
+19. Test duplicate Geoapify import
+20. Test authorization with another user
+21. Verify database state with SQL
 ```
