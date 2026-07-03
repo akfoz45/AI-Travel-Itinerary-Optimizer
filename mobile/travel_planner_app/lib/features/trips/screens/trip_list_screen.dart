@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/trip_model.dart';
 import '../services/trip_service.dart';
+import 'create_trip_screen.dart';
+import 'trip_detail_screen.dart';
 
 class TripListScreen extends StatefulWidget {
   const TripListScreen({super.key});
@@ -32,6 +34,21 @@ class _TripListScreenState extends State<TripListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Trips'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final created = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const CreateTripScreen(),
+            ),
+          );
+
+          if (created == true) {
+            _refreshTrips();
+          }
+        },
+        child: const Icon(Icons.add),
       ),
       body: FutureBuilder<List<Trip>>(
         future: _tripsFuture,
@@ -90,7 +107,14 @@ class _TripListScreenState extends State<TripListScreen> {
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      // Trip detail screen will be added later.
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TripDetailScreen(
+                            tripId: trip.tripId,
+                          ),
+                        ),
+                      );
                     },
                   ),
                 );
