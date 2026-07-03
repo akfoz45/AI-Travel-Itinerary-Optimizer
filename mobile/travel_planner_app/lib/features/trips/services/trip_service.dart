@@ -25,6 +25,10 @@ class TripService {
     required String startDate,
     required String endDate,
     required List<String> preferences,
+    required String hotelName,
+    required double hotelLatitude,
+    required double hotelLongitude,
+    double? hotelRating,
   }) async {
     final response = await _apiClient.post(
       ApiConstants.trips,
@@ -34,6 +38,12 @@ class TripService {
         'start_date': startDate,
         'end_date': endDate,
         'preferences': preferences,
+        'hotel': {
+          'name': hotelName,
+          'latitude': hotelLatitude,
+          'longitude': hotelLongitude,
+          'rating': hotelRating,
+        },
       },
     );
 

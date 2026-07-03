@@ -13,7 +13,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   final TripService _tripService = TripService();
 
   final TextEditingController _destinationController =
-      TextEditingController(text: 'Kotor, Montenegro');
+    TextEditingController(text: 'Kotor, Montenegro');
 
   final TextEditingController _startDateController =
       TextEditingController(text: '2026-07-01');
@@ -24,6 +24,18 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   final TextEditingController _preferencesController =
       TextEditingController(text: 'nature,history,museum');
 
+  final TextEditingController _hotelNameController =
+      TextEditingController(text: 'Hotel Kotor Example');
+
+  final TextEditingController _hotelLatitudeController =
+      TextEditingController(text: '42.425');
+
+  final TextEditingController _hotelLongitudeController =
+      TextEditingController(text: '18.771');
+
+  final TextEditingController _hotelRatingController =
+      TextEditingController(text: '4.5');
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -31,6 +43,10 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     final destination = _destinationController.text.trim();
     final startDate = _startDateController.text.trim();
     final endDate = _endDateController.text.trim();
+    final hotelName = _hotelNameController.text.trim();
+    final hotelLatitudeText = _hotelLatitudeController.text.trim();
+    final hotelLongitudeText = _hotelLongitudeController.text.trim();
+    final hotelRatingText = _hotelRatingController.text.trim();
 
     final preferences = _preferencesController.text
         .split(',')
@@ -38,9 +54,35 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         .where((preference) => preference.isNotEmpty)
         .toList();
 
-    if (destination.isEmpty || startDate.isEmpty || endDate.isEmpty) {
+    if (destination.isEmpty ||
+        startDate.isEmpty ||
+        endDate.isEmpty ||
+        hotelName.isEmpty ||
+        hotelLatitudeText.isEmpty ||
+        hotelLongitudeText.isEmpty) {
       setState(() {
-        _errorMessage = 'Destination, start date and end date are required.';
+        _errorMessage =
+            'Destination, dates, hotel name, latitude and longitude are required.';
+      });
+      return;
+    }
+
+    final hotelLatitude = double.tryParse(hotelLatitudeText);
+    final hotelLongitude = double.tryParse(hotelLongitudeText);
+    final hotelRating = hotelRatingText.isEmpty
+        ? null
+        : double.tryParse(hotelRatingText);
+
+    if (hotelLatitude == null || hotelLongitude == null) {
+      setState(() {
+        _errorMessage = 'Hotel latitude and longitude must be valid numbers.';
+      });
+      return;
+    }
+
+    if (hotelRatingText.isNotEmpty && hotelRating == null) {
+      setState(() {
+        _errorMessage = 'Hotel rating must be a valid number.';
       });
       return;
     }
@@ -56,6 +98,10 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         startDate: startDate,
         endDate: endDate,
         preferences: preferences,
+        hotelName: hotelName,
+        hotelLatitude: hotelLatitude,
+        hotelLongitude: hotelLongitude,
+        hotelRating: hotelRating,
       );
 
       if (!mounted) return;
@@ -80,6 +126,10 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     _startDateController.dispose();
     _endDateController.dispose();
     _preferencesController.dispose();
+    _hotelNameController.dispose();
+    _hotelLatitudeController.dispose();
+    _hotelLongitudeController.dispose();
+    _hotelRatingController.dispose();
     super.dispose();
   }
 
@@ -131,6 +181,66 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               decoration: const InputDecoration(
                 labelText: 'Preferences',
                 hintText: 'nature,history,museum',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Hotel Information',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            TextField(
+              controller: _hotelNameController,
+              decoration: const InputDecoration(
+                labelText: 'Hotel Name',
+                hintText: 'Hotel Kotor Example',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _hotelLatitudeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Hotel Latitude',
+                hintText: '42.425',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _hotelLongitudeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Hotel Longitude',
+                hintText: '18.771',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _hotelRatingController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Hotel Rating',
+                hintText: '4.5',
                 border: OutlineInputBorder(),
               ),
             ),

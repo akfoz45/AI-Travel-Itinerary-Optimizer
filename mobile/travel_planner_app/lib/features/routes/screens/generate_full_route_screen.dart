@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'route_result_screen.dart';
 import '../services/route_service.dart';
 
 class GenerateFullRouteScreen extends StatefulWidget {
@@ -34,7 +34,6 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
 
   bool _isLoading = false;
   String? _errorMessage;
-  Map<String, dynamic>? _routeResponse;
 
   Future<void> _generateRoute() async {
     final categories = _categoriesController.text
@@ -56,7 +55,6 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _routeResponse = null;
     });
 
     try {
@@ -69,9 +67,17 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
         startPlace: _startPlaceController.text,
       );
 
-      setState(() {
-        _routeResponse = response;
-      });
+      if (!mounted) return;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RouteResultScreen(
+              routeResponse: response,
+            ),
+          ),
+        );  
+
     } catch (error) {
       setState(() {
         _errorMessage = 'Failed to generate route.\n$error';
@@ -85,108 +91,6 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     }
   }
 
-  Widget _buildSummary() {
-    final summary = _routeResponse?['summary'];
-
-    if (summary == null) {
-      return const SizedBox.shrink();
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(top: 20),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Route Summary',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Text('Generated days: ${summary['generated_days'] ?? "-"}'),
-            Text('Places: ${summary['number_of_places'] ?? "-"}'),
-            Text('Distance: ${summary['total_distance_km'] ?? "-"} km'),
-            Text('Travel time: ${summary['total_travel_time_minutes'] ?? "-"} min'),
-            Text('Visit duration: ${summary['total_visit_duration_minutes'] ?? "-"} min'),
-            Text('Return to hotel: ${summary['return_to_hotel_minutes'] ?? "-"} min'),
-            Text('Route mode: ${summary['route_mode'] ?? "-"}'),
-            Text('Algorithm: ${summary['route_algorithm'] ?? "-"}'),
-
-            const SizedBox(height: 12),
-
-            Text(
-              'Weather note:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(summary['weather_note']?.toString() ?? '-'),
-
-            const SizedBox(height: 12),
-
-            Text(
-              'Unplanned places: ${summary['unplanned_place_count'] ?? 0}',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDayPlans() {
-    final dayPlans = _routeResponse?['day_plans'];
-
-    if (dayPlans == null || dayPlans is! List || dayPlans.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 20),
-
-        const Text(
-          'Day Plans',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        ...dayPlans.map((dayPlan) {
-          final routeItems = dayPlan['route_items'] as List? ?? [];
-
-          return Card(
-            child: ExpansionTile(
-              title: Text('Day ${dayPlan['day_number']}'),
-              subtitle: Text(dayPlan['date']?.toString() ?? '-'),
-              children: [
-                ...routeItems.map((item) {
-                  return ListTile(
-                    leading: CircleAvatar(
-                      child: Text(item['visit_order'].toString()),
-                    ),
-                    title: Text(item['place_name']?.toString() ?? '-'),
-                    subtitle: Text(
-                      '${item['category'] ?? "-"} | ${item['source'] ?? "-"}\n'
-                      '${item['arrival_time'] ?? "-"} - ${item['departure_time'] ?? "-"}\n'
-                      'Score: ${item['recommendation_score'] ?? "-"}',
-                    ),
-                  );
-                }),
-              ],
-            ),
-          );
-        }),
-      ],
-    );
-  }
 
 @override
 void dispose() {
@@ -298,9 +202,6 @@ void dispose() {
                     : const Text('Generate Route'),
               ),
             ),
-
-            _buildSummary(),
-            _buildDayPlans(),
           ],
         ),
       ),

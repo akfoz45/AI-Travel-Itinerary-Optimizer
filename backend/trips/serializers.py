@@ -192,17 +192,20 @@ class GenerateFullRouteSerializer(serializers.Serializer):
         max_length=255,
         required=False,
         allow_blank=True
-        )
+    )
 
     categories = serializers.ListField(
-        child=serializers.CharField(max_length=100), 
+        child=serializers.CharField(max_length=100),
         required=False
-        )
+    )
 
     start_time = serializers.TimeField(required=False)
     end_time = serializers.TimeField(required=False)
 
-    route_mode = serializers.ChoiceField(choices=["balanced", "shortest", "recommended"], required=False)
+    route_mode = serializers.ChoiceField(
+        choices=["balanced", "shortest", "recommended"],
+        required=False
+    )
 
     distance_weight = serializers.FloatField(required=False, min_value=0)
     score_weight = serializers.FloatField(required=False, min_value=0)

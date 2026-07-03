@@ -35,6 +35,7 @@ class AuthService {
     required String username,
     required String email,
     required String password,
+    required String passwordConfirm,
   }) async {
     await _apiClient.post(
       ApiConstants.register,
@@ -42,6 +43,7 @@ class AuthService {
         'username': username,
         'email': email,
         'password': password,
+        'password_confirm': passwordConfirm,
       },
     );
   }
@@ -52,6 +54,6 @@ class AuthService {
 
   Future<bool> isLoggedIn() async {
     final accessToken = await _tokenStorage.getAccessToken();
-    return accessToken != null;
+    return accessToken != null && accessToken.isNotEmpty;
   }
 }

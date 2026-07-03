@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/splash_screen.dart';
 
 void main() {
   runApp(const TravelPlannerApp());
@@ -18,7 +19,7 @@ class TravelPlannerApp extends StatelessWidget {
         colorSchemeSeed: Colors.blue,
         useMaterial3: true,
       ),
-      home: const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }

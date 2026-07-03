@@ -147,6 +147,9 @@ def generate_full_route_for_trip(
 
     forecast_by_date = get_weather_forecast_context_for_trip(trip)
 
+    if forecast_by_date is None:
+        forecast_by_date = {}
+
     first_day_weather_context = get_weather_context_for_date(
         forecast_by_date=forecast_by_date,
         date=trip.start_date,
@@ -645,7 +648,7 @@ def get_weather_forecast_context_for_trip(trip):
     hotel = get_trip_hotel(trip)
 
     if not hotel:
-        return None
+        return {}
     
     try:
         weather_service = OpenMeteoWeatherService()
@@ -721,15 +724,20 @@ def generate_weather_aware_route_for_day(
             raise ValueError(f"Start place '{start_place}' was not found.")
 
     else:
-        if not hotel:
-            raise ValueError("Start place is required when trip has no hotel.")
+        if hotel:
+            nearest_place = find_nearest_place_to_hotel(
+                hotel=hotel,
+                places=scored_places,
+            )
 
-        nearest_place = find_nearest_place_to_hotel(
-            hotel=hotel,
-            places=scored_places,
-        )
+            matched_start_place = nearest_place.place_name
+        else:
+            best_place = max(
+                scored_places,
+                key=lambda place: getattr(place, "recommendation_score", 0)
+            )
 
-        matched_start_place = nearest_place.place_name
+            matched_start_place = best_place.place_name
 
     graph = build_weighted_graph(scored_places)
 

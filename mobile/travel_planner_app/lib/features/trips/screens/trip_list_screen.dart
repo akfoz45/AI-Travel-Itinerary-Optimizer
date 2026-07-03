@@ -4,6 +4,8 @@ import '../models/trip_model.dart';
 import '../services/trip_service.dart';
 import 'create_trip_screen.dart';
 import 'trip_detail_screen.dart';
+import '../../auth/services/auth_service.dart';
+import '../../auth/screens/login_screen.dart';
 
 class TripListScreen extends StatefulWidget {
   const TripListScreen({super.key});
@@ -14,6 +16,7 @@ class TripListScreen extends StatefulWidget {
 
 class _TripListScreenState extends State<TripListScreen> {
   final TripService _tripService = TripService();
+  final AuthService _authService = AuthService();
 
   late Future<List<Trip>> _tripsFuture;
 
@@ -34,7 +37,15 @@ class _TripListScreenState extends State<TripListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Trips'),
+        actions: [
+          IconButton(
+            onPressed: _logout,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+          ),
+        ],
       ),
+      
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final created = await Navigator.push(
@@ -123,6 +134,20 @@ class _TripListScreenState extends State<TripListScreen> {
           );
         },
       ),
+    );
+  }
+
+  Future<void> _logout() async {
+    await _authService.logout();
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LoginScreen(),
+      ),
+      (route) => false,
     );
   }
 }

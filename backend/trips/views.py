@@ -205,7 +205,7 @@ class GenerateFullRouteAPIView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        start_place = serializer.validated_data.get("start_place")
+        start_place = serializer.validated_data.get("start_place", "")
         categories = serializer.validated_data.get("categories", [])
         start_time = serializer.validated_data.get("start_time", time(9, 0))
         end_time = serializer.validated_data.get("end_time", time(18, 0))

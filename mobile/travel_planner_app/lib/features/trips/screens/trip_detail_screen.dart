@@ -147,10 +147,16 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                           leading: CircleAvatar(
                             child: Text(routeItem.visitOrder.toString()),
                           ),
-                          title: Text(routeItem.placeName),
+                          title: Text(
+                            routeItem.placeName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           subtitle: Text(
-                            '${routeItem.category ?? "-"} | ${routeItem.source ?? "-"}\n'
-                            '${routeItem.arrivalTime ?? "-"} - ${routeItem.departureTime ?? "-"}\n'
+                            'Category: ${routeItem.category ?? "-"}\n'
+                            'Source: ${routeItem.source ?? "-"}\n'
+                            'Time: ${routeItem.arrivalTime ?? "-"} - ${routeItem.departureTime ?? "-"}\n'
                             'Score: ${routeItem.recommendationScore ?? "-"}',
                           ),
                         ),
@@ -181,7 +187,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             ),
           );
 
-          _refreshTrip();
+          if (!mounted) return;
+
+          await _refreshTrip();
         },
         icon: const Icon(Icons.route),
         label: const Text('Route'),
