@@ -66,4 +66,45 @@ class TripService {
 
     return Trip.fromJson(response);
   }
+  Future<void> deleteTrip(int tripId) async {
+    await _apiClient.delete(
+      '${ApiConstants.trips}$tripId/',
+      requiresAuth: true,
+    );
+  }
+
+  Future<Trip> updateTrip({
+    required int tripId,
+    required String destination,
+    required String startDate,
+    required String endDate,
+    required List<String> preferences,
+    required String hotelName,
+    required double hotelLatitude,
+    required double hotelLongitude,
+    double? hotelRating,
+  }) async {
+    final response = await _apiClient.put(
+      '${ApiConstants.trips}$tripId/',
+      requiresAuth: true,
+      body: {
+        'destination': destination,
+        'start_date': startDate,
+        'end_date': endDate,
+        'preferences': preferences,
+        'hotel': {
+          'name': hotelName,
+          'latitude': hotelLatitude,
+          'longitude': hotelLongitude,
+          'rating': hotelRating,
+        },
+      },
+    );
+
+    if (response is! Map<String, dynamic>) {
+      throw Exception('Update trip response is invalid.');
+    }
+
+    return Trip.fromJson(response);
+  }
 }

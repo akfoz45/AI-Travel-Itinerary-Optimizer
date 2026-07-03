@@ -74,6 +74,39 @@ class TripDetailAPIView(APIView):
             status=status.HTTP_200_OK
         )
     
+    def put(self, request, trip_id):
+        try:
+            trip = Trip.objects.get(
+                trip_id=trip_id,
+                user=request.user
+            )
+        except Trip.DoesNotExist:
+            return Response(
+                {"error": "Trip not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = TripCreateSerializer(
+            trip,
+            data=request.data
+        )
+
+        if serializer.is_valid():
+            updated_trip = serializer.save()
+
+            response_serializer = TripSerializer(updated_trip)
+
+            return Response(
+                response_serializer.data,
+                status=status.HTTP_200_OK
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    
 class DayPlanCreateAPIView(APIView):
     def post(self, request, trip_id):
         try:

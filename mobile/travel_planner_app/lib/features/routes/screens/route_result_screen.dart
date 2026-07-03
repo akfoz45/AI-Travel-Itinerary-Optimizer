@@ -16,103 +16,221 @@ class RouteResultScreen extends StatelessWidget {
     return routeResponse['day_plans'] as List<dynamic>? ?? [];
   }
 
-  Widget _summaryCard() {
+  Widget _summaryItem({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(label),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCard() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Route Summary',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            const Row(
+              children: [
+                Icon(Icons.route),
+                SizedBox(width: 8),
+                Text(
+                  'Route Summary',
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            _summaryItem(
+              icon: Icons.calendar_today,
+              label: 'Generated days',
+              value: '${summary['generated_days'] ?? "-"}',
+            ),
+
+            const SizedBox(height: 10),
+
+            _summaryItem(
+              icon: Icons.place,
+              label: 'Places',
+              value: '${summary['number_of_places'] ?? "-"}',
+            ),
+
+            const SizedBox(height: 10),
+
+            _summaryItem(
+              icon: Icons.directions_walk,
+              label: 'Distance',
+              value: '${summary['total_distance_km'] ?? "-"} km',
+            ),
+
+            const SizedBox(height: 10),
+
+            _summaryItem(
+              icon: Icons.access_time,
+              label: 'Travel time',
+              value: '${summary['total_travel_time_minutes'] ?? "-"} min',
+            ),
+
+            const SizedBox(height: 10),
+
+            _summaryItem(
+              icon: Icons.schedule,
+              label: 'Visit duration',
+              value: '${summary['total_visit_duration_minutes'] ?? "-"} min',
+            ),
+
+            const SizedBox(height: 10),
+
+            _summaryItem(
+              icon: Icons.tune,
+              label: 'Route mode',
+              value: '${summary['route_mode'] ?? "-"}',
+            ),
+
+            const SizedBox(height: 16),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: const Color(0xFFE0E6EF),
+                ),
+              ),
+              child: Text(
+                summary['weather_note']?.toString() ??
+                    'No weather note available.',
               ),
             ),
-
-            const SizedBox(height: 12),
-
-            Text('Generated days: ${summary['generated_days'] ?? "-"}'),
-            Text('Places: ${summary['number_of_places'] ?? "-"}'),
-            Text('Distance: ${summary['total_distance_km'] ?? "-"} km'),
-            Text('Travel time: ${summary['total_travel_time_minutes'] ?? "-"} min'),
-            Text('Visit duration: ${summary['total_visit_duration_minutes'] ?? "-"} min'),
-            Text('Return to hotel: ${summary['return_to_hotel_minutes'] ?? "-"} min'),
-            Text('Total plan duration: ${summary['total_plan_duration_minutes'] ?? "-"} min'),
-
-            const SizedBox(height: 12),
-
-            Text('Route mode: ${summary['route_mode'] ?? "-"}'),
-            Text('Algorithm: ${summary['route_algorithm'] ?? "-"}'),
-
-            const SizedBox(height: 12),
-
-            const Text(
-              'Weather Note',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(summary['weather_note']?.toString() ?? '-'),
-
-            const SizedBox(height: 12),
-
-            Text('Unplanned places: ${summary['unplanned_place_count'] ?? 0}'),
           ],
         ),
       ),
     );
   }
 
-  Widget _dayPlanCard(dynamic dayPlan) {
+  Widget _buildDailySummary(Map<String, dynamic> dailySummary) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFE0E6EF),
+        ),
+      ),
+      child: Text(
+        'Places: ${dailySummary['number_of_places'] ?? "-"}\n'
+        'Distance: ${dailySummary['total_distance_km'] ?? "-"} km\n'
+        'Travel time: ${dailySummary['total_travel_time_minutes'] ?? "-"} min\n'
+        'Visit duration: ${dailySummary['total_visit_duration_minutes'] ?? "-"} min\n'
+        'Weather: ${dailySummary['weather_note'] ?? "No weather note"}',
+      ),
+    );
+  }
+
+  Widget _buildRouteItem(dynamic item) {
+    return ListTile(
+      leading: CircleAvatar(
+        child: Text('${item['visit_order'] ?? "-"}'),
+      ),
+      title: Text(
+        item['place_name']?.toString() ?? '-',
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        'Category: ${item['category'] ?? "-"}\n'
+        'Source: ${item['source'] ?? "-"}\n'
+        'Time: ${item['arrival_time'] ?? "-"} - ${item['departure_time'] ?? "-"}\n'
+        'Score: ${item['recommendation_score'] ?? "-"}',
+      ),
+    );
+  }
+
+  Widget _buildDayPlanCard(dynamic dayPlan) {
     final routeItems = dayPlan['route_items'] as List<dynamic>? ?? [];
     final dailySummary =
         dayPlan['daily_summary'] as Map<String, dynamic>? ?? {};
 
     return Card(
       child: ExpansionTile(
-        title: Text('Day ${dayPlan['day_number'] ?? "-"}'),
+        initiallyExpanded: true,
+        leading: CircleAvatar(
+          child: Text('${dayPlan['day_number'] ?? "-"}'),
+        ),
+        title: Text(
+          'Day ${dayPlan['day_number'] ?? "-"}',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         subtitle: Text(dayPlan['date']?.toString() ?? '-'),
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Places: ${dailySummary['number_of_places'] ?? "-"}\n'
-                'Distance: ${dailySummary['total_distance_km'] ?? "-"} km\n'
-                'Travel time: ${dailySummary['total_travel_time_minutes'] ?? "-"} min\n'
-                'Visit duration: ${dailySummary['total_visit_duration_minutes'] ?? "-"} min\n'
-                'Weather: ${dailySummary['weather_note'] ?? "-"}',
-              ),
-            ),
-          ),
+          if (dailySummary.isNotEmpty) _buildDailySummary(dailySummary),
 
           if (routeItems.isEmpty)
             const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text('No route items.'),
+              padding: EdgeInsets.all(16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('No route items.'),
+              ),
             )
           else
-            ...routeItems.map((item) {
-              return ListTile(
-                leading: CircleAvatar(
-                  child: Text(item['visit_order'].toString()),
-                ),
-                title: Text(item['place_name']?.toString() ?? '-'),
-                subtitle: Text(
-                  '${item['category'] ?? "-"} | ${item['source'] ?? "-"}\n'
-                  '${item['arrival_time'] ?? "-"} - ${item['departure_time'] ?? "-"}\n'
-                  'Score: ${item['recommendation_score'] ?? "-"}',
-                ),
-              );
-            }),
+            ...routeItems.map(_buildRouteItem),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'No route result found.',
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (dayPlans.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Route Result'),
+        ),
+        body: _buildEmptyState(),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Route Result'),
@@ -120,24 +238,23 @@ class RouteResultScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _summaryCard(),
+          _buildSummaryCard(),
 
           const SizedBox(height: 20),
 
           const Text(
             'Day Plans',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 21,
               fontWeight: FontWeight.bold,
             ),
           ),
 
           const SizedBox(height: 8),
 
-          if (dayPlans.isEmpty)
-            const Text('No day plans returned.')
-          else
-            ...dayPlans.map(_dayPlanCard),
+          ...dayPlans.map(_buildDayPlanCard),
+
+          const SizedBox(height: 24),
         ],
       ),
     );

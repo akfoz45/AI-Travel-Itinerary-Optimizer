@@ -1,38 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../models/trip_model.dart';
 import '../services/trip_service.dart';
 
-class CreateTripScreen extends StatefulWidget {
-  const CreateTripScreen({super.key});
+class EditTripScreen extends StatefulWidget {
+  final Trip trip;
+
+  const EditTripScreen({
+    super.key,
+    required this.trip,
+  });
 
   @override
-  State<CreateTripScreen> createState() => _CreateTripScreenState();
+  State<EditTripScreen> createState() => _EditTripScreenState();
 }
 
-class _CreateTripScreenState extends State<CreateTripScreen> {
+class _EditTripScreenState extends State<EditTripScreen> {
   final TripService _tripService = TripService();
 
-  final TextEditingController _destinationController =
-      TextEditingController(text: 'Kotor, Montenegro');
-
-  final TextEditingController _startDateController =
-      TextEditingController(text: '2026-07-01');
-
-  final TextEditingController _endDateController =
-      TextEditingController(text: '2026-07-03');
-
-  final TextEditingController _hotelNameController =
-      TextEditingController(text: 'Hotel Kotor Example');
-
-  final TextEditingController _hotelLatitudeController =
-      TextEditingController(text: '42.425');
-
-  final TextEditingController _hotelLongitudeController =
-      TextEditingController(text: '18.771');
-
-  final TextEditingController _hotelRatingController =
-      TextEditingController(text: '4.5');
+  late final TextEditingController _destinationController;
+  late final TextEditingController _startDateController;
+  late final TextEditingController _endDateController;
+  late final TextEditingController _hotelNameController;
+  late final TextEditingController _hotelLatitudeController;
+  late final TextEditingController _hotelLongitudeController;
+  late final TextEditingController _hotelRatingController;
 
   final List<String> _availablePreferences = [
     'nature',
@@ -47,19 +40,78 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     'shopping',
   ];
 
-  final Set<String> _selectedPreferences = {
-    'nature',
-    'history',
-    'museum',
-  };
+  final Set<String> _selectedPreferences = {};
 
   bool _isLoading = false;
   String? _errorMessage;
 
-  Future<void> _createTrip() async {
+  @override
+  void initState() {
+    super.initState();
+
+    final hotel = widget.trip.hotels.isNotEmpty
+        ? widget.trip.hotels.first
+        : null;
+
+    _destinationController = TextEditingController(
+      text: widget.trip.destination,
+    );
+
+    _startDateController = TextEditingController(
+      text: widget.trip.startDate,
+    );
+
+    _endDateController = TextEditingController(
+      text: widget.trip.endDate,
+    );
+
+    _selectedPreferences.addAll(
+      widget.trip.preferences.map(
+        (preference) => preference.preference,
+      ),
+    );
+
+    _hotelNameController = TextEditingController(
+      text: hotel?.name ?? '',
+    );
+
+    _hotelLatitudeController = TextEditingController(
+      text: hotel?.latitude.toString() ?? '',
+    );
+
+    _hotelLongitudeController = TextEditingController(
+      text: hotel?.longitude.toString() ?? '',
+    );
+
+    _hotelRatingController = TextEditingController(
+      text: hotel?.rating?.toString() ?? '',
+    );
+  }
+
+  Future<void> _pickDate(TextEditingController controller) async {
+    final now = DateTime.now();
+
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: controller.text.isNotEmpty
+          ? DateTime.tryParse(controller.text) ?? now
+          : now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 5),
+    );
+
+    if (selectedDate == null) return;
+
+    setState(() {
+      controller.text = DateFormat('yyyy-MM-dd').format(selectedDate);
+    });
+  }
+
+  Future<void> _updateTrip() async {
     final destination = _destinationController.text.trim();
     final startDate = _startDateController.text.trim();
     final endDate = _endDateController.text.trim();
+
     final hotelName = _hotelNameController.text.trim();
     final hotelLatitudeText = _hotelLatitudeController.text.trim();
     final hotelLongitudeText = _hotelLongitudeController.text.trim();
@@ -106,8 +158,9 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
 
     final hotelLatitude = double.tryParse(hotelLatitudeText);
     final hotelLongitude = double.tryParse(hotelLongitudeText);
-    final hotelRating =
-        hotelRatingText.isEmpty ? null : double.tryParse(hotelRatingText);
+    final hotelRating = hotelRatingText.isEmpty
+        ? null
+        : double.tryParse(hotelRatingText);
 
     if (hotelLatitude == null || hotelLongitude == null) {
       setState(() {
@@ -129,7 +182,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     });
 
     try {
-      await _tripService.createTrip(
+      await _tripService.updateTrip(
+        tripId: widget.trip.tripId,
         destination: destination,
         startDate: startDate,
         endDate: endDate,
@@ -145,7 +199,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
       Navigator.pop(context, true);
     } catch (error) {
       setState(() {
-        _errorMessage = 'Failed to create trip.\n$error';
+        _errorMessage = 'Failed to update trip.\n$error';
       });
     } finally {
       if (mounted) {
@@ -154,27 +208,6 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         });
       }
     }
-  }
-
-  Future<void> _pickDate(TextEditingController controller) async {
-    final now = DateTime.now();
-
-    final selectedDate = await showDatePicker(
-      context: context,
-      initialDate: controller.text.isNotEmpty
-          ? DateTime.tryParse(controller.text) ?? now
-          : now,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 5),
-    );
-
-    if (selectedDate == null) return;
-
-    final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
-
-    setState(() {
-      controller.text = formattedDate;
-    });
   }
 
   Widget _buildPreferenceSelector() {
@@ -237,7 +270,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Trip'),
+        title: const Text('Edit Trip'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -247,7 +280,6 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               controller: _destinationController,
               decoration: const InputDecoration(
                 labelText: 'Destination',
-                hintText: 'Kotor, Montenegro',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -260,9 +292,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               onTap: () => _pickDate(_startDateController),
               decoration: const InputDecoration(
                 labelText: 'Start Date',
-                hintText: 'YYYY-MM-DD',
-                border: OutlineInputBorder(),
                 suffixIcon: Icon(Icons.calendar_today),
+                border: OutlineInputBorder(),
               ),
             ),
 
@@ -274,9 +305,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               onTap: () => _pickDate(_endDateController),
               decoration: const InputDecoration(
                 labelText: 'End Date',
-                hintText: 'YYYY-MM-DD',
-                border: OutlineInputBorder(),
                 suffixIcon: Icon(Icons.calendar_today),
+                border: OutlineInputBorder(),
               ),
             ),
 
@@ -303,7 +333,6 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               controller: _hotelNameController,
               decoration: const InputDecoration(
                 labelText: 'Hotel Name',
-                hintText: 'Hotel Kotor Example',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -317,7 +346,6 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               ),
               decoration: const InputDecoration(
                 labelText: 'Hotel Latitude',
-                hintText: '42.425',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -331,7 +359,6 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               ),
               decoration: const InputDecoration(
                 labelText: 'Hotel Longitude',
-                hintText: '18.771',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -345,7 +372,6 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               ),
               decoration: const InputDecoration(
                 labelText: 'Hotel Rating',
-                hintText: '4.5',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -355,8 +381,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
             if (_errorMessage != null)
               Text(
                 _errorMessage!,
-                style: const TextStyle(color: Colors.red),
                 textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
               ),
 
             const SizedBox(height: 16),
@@ -364,10 +390,10 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _createTrip,
+                onPressed: _isLoading ? null : _updateTrip,
                 child: _isLoading
                     ? const CircularProgressIndicator()
-                    : const Text('Create Trip'),
+                    : const Text('Update Trip'),
               ),
             ),
           ],

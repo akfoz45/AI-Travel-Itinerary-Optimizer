@@ -32,6 +32,207 @@ class _TripListScreenState extends State<TripListScreen> {
     });
   }
 
+  Future<void> _logout() async {
+    await _authService.logout();
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LoginScreen(),
+      ),
+      (route) => false,
+    );
+  }
+
+  Widget _buildTripCard(Trip trip) {
+    final hasHotel = trip.hotels.isNotEmpty;
+    final hasRoute = trip.dayPlans.isNotEmpty;
+
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TripDetailScreen(
+                tripId: trip.tripId,
+              ),
+            ),
+          );
+
+          if (!mounted) return;
+          await _refreshTrips();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      trip.destination,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              Row(
+                children: [
+                  const Icon(
+                    Icons.date_range,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${trip.startDate} - ${trip.endDate}',
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              if (trip.preferences.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: trip.preferences.map((preference) {
+                    return Chip(
+                      label: Text(preference.preference),
+                      visualDensity: VisualDensity.compact,
+                    );
+                  }).toList(),
+                )
+              else
+                const Text('No preferences.'),
+
+              const SizedBox(height: 12),
+
+              Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        hasHotel ? Icons.hotel : Icons.hotel_outlined,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        hasHotel ? 'Hotel added' : 'No hotel',
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        hasRoute ? Icons.route : Icons.route_outlined,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        hasRoute ? 'Route generated' : 'No route yet',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return RefreshIndicator(
+      onRefresh: _refreshTrips,
+      child: ListView(
+        children: const [
+          SizedBox(height: 160),
+          Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'No trips yet.\nTap + to create your first trip.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(Object error) {
+    return RefreshIndicator(
+      onRefresh: _refreshTrips,
+      child: ListView(
+        children: [
+          const SizedBox(height: 160),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Failed to load trips.\n$error',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTripList(List<Trip> trips) {
+    return RefreshIndicator(
+      onRefresh: _refreshTrips,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: trips.length,
+        itemBuilder: (context, index) {
+          final trip = trips[index];
+          return _buildTripCard(trip);
+        },
+      ),
+    );
+  }
+
+  Future<void> _openCreateTripScreen() async {
+    final created = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CreateTripScreen(),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (created == true) {
+      await _refreshTrips();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,20 +246,8 @@ class _TripListScreenState extends State<TripListScreen> {
           ),
         ],
       ),
-      
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final created = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const CreateTripScreen(),
-            ),
-          );
-
-          if (created == true) {
-            _refreshTrips();
-          }
-        },
+        onPressed: _openCreateTripScreen,
         child: const Icon(Icons.add),
       ),
       body: FutureBuilder<List<Trip>>(
@@ -71,83 +260,18 @@ class _TripListScreenState extends State<TripListScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Failed to load trips.\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            );
+            return _buildErrorState(snapshot.error!);
           }
 
           final trips = snapshot.data ?? [];
 
           if (trips.isEmpty) {
-            return RefreshIndicator(
-              onRefresh: _refreshTrips,
-              child: ListView(
-                children: const [
-                  SizedBox(height: 160),
-                  Center(
-                    child: Text('No trips found.'),
-                  ),
-                ],
-              ),
-            );
+            return _buildEmptyState();
           }
 
-          return RefreshIndicator(
-            onRefresh: _refreshTrips,
-            child: ListView.builder(
-              itemCount: trips.length,
-              itemBuilder: (context, index) {
-                final trip = trips[index];
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: ListTile(
-                    title: Text(trip.destination),
-                    subtitle: Text(
-                      '${trip.startDate} - ${trip.endDate}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TripDetailScreen(
-                            tripId: trip.tripId,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          );
+          return _buildTripList(trips);
         },
       ),
-    );
-  }
-
-  Future<void> _logout() async {
-    await _authService.logout();
-
-    if (!mounted) return;
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const LoginScreen(),
-      ),
-      (route) => false,
     );
   }
 }

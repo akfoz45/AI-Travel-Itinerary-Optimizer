@@ -141,6 +141,34 @@ class TripCreateSerializer(serializers.ModelSerializer):
 
         return trip
     
+    def update(self, instance, validated_data):
+        preferences_data = validated_data.pop("preferences", None)
+        hotel_data = validated_data.pop("hotel", None)
+
+        instance.destination = validated_data.get("destination", instance.destination)
+        instance.start_date = validated_data.get("start_date", instance.start_date)
+        instance.end_date = validated_data.get("end_date", instance.end_date)
+        instance.save()
+
+        if preferences_data is not None:
+            instance.preferences.all().delete()
+
+            for preference in preferences_data:
+                TripPreference.objects.create(
+                    trip=instance,
+                    preference=preference
+                )
+
+        if hotel_data is not None:
+            instance.hotels.all().delete()
+
+            Hotel.objects.create(
+                trip=instance,
+                **hotel_data
+            )
+
+        return instance
+    
 class DayPlanCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = DayPlan
