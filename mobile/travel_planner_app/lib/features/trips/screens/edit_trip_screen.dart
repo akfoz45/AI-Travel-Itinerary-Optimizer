@@ -196,7 +196,10 @@ class _EditTripScreenState extends State<EditTripScreen> {
 
       if (!mounted) return;
 
-      Navigator.pop(context, true);
+      Navigator.pop(context, {
+        'updated': true,
+        'shouldAskRegenerate': widget.trip.dayPlans.isNotEmpty,
+      });
     } catch (error) {
       setState(() {
         _errorMessage = 'Failed to update trip.\n$error';

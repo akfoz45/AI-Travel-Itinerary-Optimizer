@@ -34,8 +34,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     });
   }
 
-  Future<void> _openGenerateRouteScreen(Trip trip) async {
-    if (trip.dayPlans.isNotEmpty) {
+  Future<void> _openGenerateRouteScreen(
+    Trip trip, {
+    bool skipExistingRouteWarning = false,
+  }) async {
+    if (!skipExistingRouteWarning && trip.dayPlans.isNotEmpty) {
       final shouldContinue = await showDialog<bool>(
         context: context,
         builder: (dialogContext) {
@@ -573,7 +576,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   Future<void> _openEditTripScreen(Trip trip) async {
-    final updated = await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => EditTripScreen(
@@ -584,8 +587,55 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
     if (!mounted) return;
 
-    if (updated == true) {
+    if (result is Map && result['updated'] == true) {
       await _refreshTrip();
+
+      if (!mounted) return;
+
+      if (result['shouldAskRegenerate'] == true) {
+        await _askRegenerateAfterEdit();
+      }
     }
+  }
+
+  Future<void> _askRegenerateAfterEdit() async {
+    final shouldRegenerate = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Trip Updated'),
+          content: const Text(
+            'This trip already has a route. Since trip details were updated, you may want to regenerate the route.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Later'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Regenerate'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+
+    if (shouldRegenerate != true) return;
+
+    final refreshedTrip = await _tripService.getTripDetail(widget.tripId);
+
+    if (!mounted) return;
+
+    await _openGenerateRouteScreen(
+      refreshedTrip,
+      skipExistingRouteWarning: true,
+    );
   }
 }

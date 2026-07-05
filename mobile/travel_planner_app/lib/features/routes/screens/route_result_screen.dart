@@ -16,6 +16,16 @@ class RouteResultScreen extends StatelessWidget {
     return routeResponse['day_plans'] as List<dynamic>? ?? [];
   }
 
+  void _backToTripDetail(BuildContext context) {
+    final navigator = Navigator.of(context);
+
+    navigator.pop();
+
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
+  }
+
   Widget _summaryItem({
     required IconData icon,
     required String label,
@@ -208,17 +218,6 @@ class RouteResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text(
-          'No route result found.',
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -243,9 +242,7 @@ class RouteResultScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: () => _backToTripDetail(context),
                   icon: const Icon(Icons.arrow_back),
                   label: const Text('Back to Trip Detail'),
                 ),
@@ -284,9 +281,7 @@ class RouteResultScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => _backToTripDetail(context),
               icon: const Icon(Icons.arrow_back),
               label: const Text('Back to Trip Detail'),
             ),
