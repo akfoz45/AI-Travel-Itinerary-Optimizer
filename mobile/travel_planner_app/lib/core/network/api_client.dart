@@ -91,17 +91,12 @@ class ApiClient {
         return null;
       }
 
-      throw Exception('API Error ${response.statusCode}: Empty response body.');
+      throw Exception('Request failed. Status code: ${response.statusCode}');
     }
 
     if (!contentType.contains('application/json')) {
       throw Exception(
-        'API did not return JSON. '
-        'Status: ${response.statusCode}\n'
-        'Body preview: ${response.body.substring(
-          0,
-          response.body.length > 500 ? 500 : response.body.length,
-        )}',
+        'Server returned an unexpected response. Please try again.',
       );
     }
 
@@ -111,8 +106,37 @@ class ApiClient {
       return decodedBody;
     }
 
-    throw Exception(
-      'API Error ${response.statusCode}: ${response.body}',
+    final errorMessage = _extractErrorMessage(
+      decodedBody,
+      response.statusCode,
     );
+
+    throw Exception(errorMessage);
+  }
+
+  String _extractErrorMessage(dynamic decodedBody, int statusCode) {
+    if (decodedBody is Map<String, dynamic>) {
+      if (decodedBody['error'] != null) {
+        return decodedBody['error'].toString();
+      }
+
+      if (decodedBody['detail'] != null) {
+        return decodedBody['detail'].toString();
+      }
+
+      if (decodedBody['message'] != null) {
+        return decodedBody['message'].toString();
+      }
+
+      final fieldErrors = decodedBody.entries.map((entry) {
+        return '${entry.key}: ${entry.value}';
+      }).join('\n');
+
+      if (fieldErrors.isNotEmpty) {
+        return fieldErrors;
+      }
+    }
+
+    return 'Request failed. Status code: $statusCode';
   }
 }

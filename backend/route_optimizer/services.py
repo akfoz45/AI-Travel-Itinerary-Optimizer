@@ -162,6 +162,11 @@ def generate_full_route_for_trip(
 
     if total_days <= 0:
         raise ValueError("Trip date range is invalid.")
+    
+    existing_day_plans = DayPlan.objects.filter(trip=trip)
+
+    if existing_day_plans.exists():
+        existing_day_plans.delete()
 
     created_day_plans = []
 

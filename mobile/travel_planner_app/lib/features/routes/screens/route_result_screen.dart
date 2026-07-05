@@ -227,7 +227,32 @@ class RouteResultScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Route Result'),
         ),
-        body: _buildEmptyState(),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Expanded(
+                child: Center(
+                  child: Text(
+                    'No route result found.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Back to Trip Detail'),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -253,6 +278,19 @@ class RouteResultScreen extends StatelessWidget {
           const SizedBox(height: 8),
 
           ...dayPlans.map(_buildDayPlanCard),
+
+          const SizedBox(height: 24),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Back to Trip Detail'),
+            ),
+          ),
 
           const SizedBox(height: 24),
         ],

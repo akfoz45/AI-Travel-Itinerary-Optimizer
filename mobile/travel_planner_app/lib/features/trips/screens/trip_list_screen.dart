@@ -167,16 +167,43 @@ class _TripListScreenState extends State<TripListScreen> {
       onRefresh: _refreshTrips,
       child: ListView(
         children: const [
-          SizedBox(height: 160),
+          SizedBox(height: 120),
+
+          Icon(
+            Icons.travel_explore,
+            size: 72,
+          ),
+
+          SizedBox(height: 16),
+
           Center(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'No trips yet.\nTap + to create your first trip.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                ),
+            child: Text(
+              'No trips yet',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+
+          SizedBox(height: 8),
+
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Create your first trip and start generating optimized travel routes.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15),
+            ),
+          ),
+
+          SizedBox(height: 12),
+
+          Center(
+            child: Text(
+              'Tap the + button to begin.',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

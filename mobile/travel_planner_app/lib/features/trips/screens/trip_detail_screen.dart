@@ -35,6 +35,38 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   Future<void> _openGenerateRouteScreen(Trip trip) async {
+    if (trip.dayPlans.isNotEmpty) {
+      final shouldContinue = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Regenerate Route'),
+            content: const Text(
+              'This trip already has a route. Generating a new route will replace the existing route. Do you want to continue?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext, false);
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext, true);
+                },
+                child: const Text('Continue'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+
+      if (shouldContinue != true) return;
+    }
+
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -205,11 +237,35 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Widget _buildHotelCard(Trip trip) {
     if (trip.hotels.isEmpty) {
       return const Card(
-        child: ListTile(
-          leading: Icon(Icons.hotel_outlined),
-          title: Text('No hotel found'),
-          subtitle: Text(
-            'This trip does not have a hotel. Route can still be generated with a start place.',
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.hotel_outlined),
+
+              SizedBox(width: 12),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No hotel added',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    SizedBox(height: 6),
+
+                    Text(
+                      'You can still generate a route by entering a start place manually.',
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -264,8 +320,32 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     if (trip.dayPlans.isEmpty) {
       return const Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('No day plans available.'),
+          padding: EdgeInsets.all(18),
+          child: Column(
+            children: [
+              Icon(
+                Icons.route_outlined,
+                size: 48,
+              ),
+
+              SizedBox(height: 12),
+
+              Text(
+                'No route generated yet',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              SizedBox(height: 8),
+
+              Text(
+                'Use the Generate Route button to create a daily travel plan for this trip.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       );
     }

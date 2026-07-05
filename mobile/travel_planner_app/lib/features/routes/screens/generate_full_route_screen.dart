@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'route_result_screen.dart';
 import '../services/route_service.dart';
 
@@ -21,7 +22,7 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
   final RouteService _routeService = RouteService();
 
   final TextEditingController _startPlaceController =
-    TextEditingController(text: 'Kotor Old Town');
+      TextEditingController(text: 'Kotor Old Town');
 
   final TextEditingController _startTimeController =
       TextEditingController(text: '09:00');
@@ -49,8 +50,25 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+
+    _selectedCategories = widget.tripPreferences.toSet();
+
+    if (_selectedCategories.isEmpty) {
+      _selectedCategories = {
+        'nature',
+        'history',
+        'museum',
+      };
+    }
+  }
+
   Future<void> _generateRoute() async {
     final categories = _selectedCategories.toList();
+    final startTime = _startTimeController.text.trim();
+    final endTime = _endTimeController.text.trim();
 
     if (categories.isEmpty) {
       setState(() {
@@ -59,8 +77,12 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
       return;
     }
 
-    final startTime = _startTimeController.text.trim();
-    final endTime = _endTimeController.text.trim();
+    if (startTime.isEmpty || endTime.isEmpty) {
+      setState(() {
+        _errorMessage = 'Start time and end time are required.';
+      });
+      return;
+    }
 
     final startParts = startTime.split(':');
     final endParts = endTime.split(':');
@@ -97,13 +119,6 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
       return;
     }
 
-    if (categories.isEmpty || startTime.isEmpty || endTime.isEmpty) {
-      setState(() {
-        _errorMessage = 'Categories, start time and end time are required.';
-      });
-      return;
-    }
-
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -121,16 +136,17 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
 
       if (!mounted) return;
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RouteResultScreen(
-              routeResponse: response,
-            ),
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RouteResultScreen(
+            routeResponse: response,
           ),
-        );  
-
+        ),
+      );
     } catch (error) {
+      if (!mounted) return;
+
       setState(() {
         _errorMessage = 'Failed to generate route.\n$error';
       });
@@ -141,121 +157,6 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
         });
       }
     }
-  }
-
-
-@override
-void dispose() {
-  _startPlaceController.dispose();
-  _startTimeController.dispose();
-  _endTimeController.dispose();
-  super.dispose();
-}
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Generate Full Route'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _startPlaceController,
-              decoration: const InputDecoration(
-                labelText: 'Start Place',
-                hintText: 'Kotor Old Town',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            _buildCategorySelector(),
-
-            TextField(
-              controller: _startTimeController,
-              readOnly: true,
-              onTap: () => _pickTime(_startTimeController),
-              decoration: const InputDecoration(
-                labelText: 'Start Time',
-                hintText: '09:00',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.access_time),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _endTimeController,
-              readOnly: true,
-              onTap: () => _pickTime(_endTimeController),
-              decoration: const InputDecoration(
-                labelText: 'End Time',
-                hintText: '18:00',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.access_time),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            DropdownButtonFormField<String>(
-              initialValue: _selectedRouteMode,
-              decoration: const InputDecoration(
-                labelText: 'Route Mode',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'balanced',
-                  child: Text('Balanced'),
-                ),
-                DropdownMenuItem(
-                  value: 'shortest',
-                  child: Text('Shortest'),
-                ),
-                DropdownMenuItem(
-                  value: 'recommended',
-                  child: Text('Recommended'),
-                ),
-              ],
-              onChanged: (value) {
-                if (value == null) return;
-
-                setState(() {
-                  _selectedRouteMode = value;
-                });
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            if (_errorMessage != null)
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _generateRoute,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Generate Route'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _pickTime(TextEditingController controller) async {
@@ -333,18 +234,162 @@ void dispose() {
     );
   }
 
+  Widget _buildLoadingOverlay() {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.35),
+      child: const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+
+                SizedBox(height: 16),
+
+                Text(
+                  'Generating your route...',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(height: 8),
+
+                Text(
+                  'This may take a few seconds.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
-  void initState() {
-    super.initState();
+  void dispose() {
+    _startPlaceController.dispose();
+    _startTimeController.dispose();
+    _endTimeController.dispose();
+    super.dispose();
+  }
 
-    _selectedCategories = widget.tripPreferences.toSet();
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Generate Full Route'),
+      ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _startPlaceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Start Place',
+                    hintText: 'Kotor Old Town',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
 
-    if (_selectedCategories.isEmpty) {
-      _selectedCategories = {
-        'nature',
-        'history',
-        'museum',
-      };
-    }
+                const SizedBox(height: 16),
+
+                _buildCategorySelector(),
+
+                const SizedBox(height: 16),
+
+                TextField(
+                  controller: _startTimeController,
+                  readOnly: true,
+                  onTap: () => _pickTime(_startTimeController),
+                  decoration: const InputDecoration(
+                    labelText: 'Start Time',
+                    hintText: '09:00',
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.access_time),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                TextField(
+                  controller: _endTimeController,
+                  readOnly: true,
+                  onTap: () => _pickTime(_endTimeController),
+                  decoration: const InputDecoration(
+                    labelText: 'End Time',
+                    hintText: '18:00',
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.access_time),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedRouteMode,
+                  decoration: const InputDecoration(
+                    labelText: 'Route Mode',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'balanced',
+                      child: Text('Balanced'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'shortest',
+                      child: Text('Shortest'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'recommended',
+                      child: Text('Recommended'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+
+                    setState(() {
+                      _selectedRouteMode = value;
+                    });
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                if (_errorMessage != null)
+                  Text(
+                    _errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _generateRoute,
+                    icon: const Icon(Icons.route),
+                    label: const Text('Generate Route'),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+
+          if (_isLoading) _buildLoadingOverlay(),
+        ],
+      ),
+    );
   }
 }
