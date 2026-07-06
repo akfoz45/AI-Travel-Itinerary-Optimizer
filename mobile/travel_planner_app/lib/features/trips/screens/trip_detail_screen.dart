@@ -191,16 +191,18 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     required IconData icon,
     required String label,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 12,
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white, 
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFFE0E6EF),
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE0E6EF),
         ),
       ),
       child: Row(
@@ -209,9 +211,15 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           Icon(
             icon,
             size: 17,
+            color: isDark ? Colors.white70 : Colors.black87, 
           ),
           const SizedBox(width: 6),
-          Text(label),
+          Text(
+            label,
+            style: TextStyle(
+              color: isDark ? Colors.white70 : Colors.black87, 
+            ),
+          ),
         ],
       ),
     );
@@ -407,16 +415,18 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   Widget _buildDailySummary(Map<String, dynamic> dailySummary) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: const Color(0xFFE0E6EF),
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE0E6EF),
           ),
         ),
         child: Text(
@@ -425,6 +435,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           'Travel time: ${dailySummary['total_travel_time_minutes'] ?? "-"} min\n'
           'Visit duration: ${dailySummary['total_visit_duration_minutes'] ?? "-"} min\n'
           'Weather: ${dailySummary['weather_note'] ?? "No weather note"}',
+          style: TextStyle(
+            color: isDark ? Colors.white70 : Colors.black87,
+            height: 1.5,
+          ),
         ),
       ),
     );

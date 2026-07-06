@@ -50,23 +50,28 @@ class _TripListScreenState extends State<TripListScreen> {
   Widget _buildTripCard(Trip trip) {
     final hasHotel = trip.hotels.isNotEmpty;
     final hasRoute = trip.dayPlans.isNotEmpty;
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final imageUrl = 'https://picsum.photos/seed/${trip.tripId + 10}/600/300';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white, 
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFF4F46E5).withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         child: Material(
-          color: Colors.white,
+          color: Colors.transparent,
           child: InkWell(
             onTap: () async {
               await Navigator.push(
@@ -83,128 +88,140 @@ class _TripListScreenState extends State<TripListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  height: 100,
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0xFF4F46E5), 
-                        Color(0xFF0EA5E9), 
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                Stack(
+                  children: [
+                    Image.network(
+                      imageUrl,
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 160,
+                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                        );
+                      },
                     ),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  alignment: Alignment.bottomLeft,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          trip.destination,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: Colors.white),
-                    ],
-                  ),
+                    ),
+                    Positioned(
+                      bottom: 16,
+                      left: 16,
+                      right: 16,
+                      child: Text(
+                        trip.destination,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.favorite_border, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ],
                 ),
-                
+
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.date_range, size: 18, color: Colors.grey),
-                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.calendar_month_rounded, size: 18, color: Color(0xFF4F46E5)),
+                          ),
+                          const SizedBox(width: 12),
                           Text(
-                            '${trip.startDate} - ${trip.endDate}',
-                            style: const TextStyle(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w500,
+                            '${trip.startDate}  —  ${trip.endDate}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark ? Colors.white70 : const Color(0xFF334155),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       if (trip.preferences.isNotEmpty)
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: trip.preferences.map((preference) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE3F2FD), 
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                preference.preference,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF1E88E5),
-                                  fontWeight: FontWeight.w600,
+                        SizedBox(
+                          height: 32,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: trip.preferences.length,
+                            separatorBuilder: (context, index) => const SizedBox(width: 8),
+                            itemBuilder: (context, index) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                              ),
-                            );
-                          }).toList(),
+                                child: Center(
+                                  child: Text(
+                                    trip.preferences[index].preference,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         )
                       else
-                        const Text('No preferences.', style: TextStyle(color: Colors.grey)),
-                      
-                      const SizedBox(height: 16),
-                      const Divider(height: 1, color: Color(0xFFEEEEEE)),
-                      const SizedBox(height: 12),
-                      
+                        const Text('No preferences selected', style: TextStyle(color: Colors.grey, fontSize: 13)),
+
+                      const SizedBox(height: 20),
+
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Row(
-                            children: [
-                              Icon(
-                                hasHotel ? Icons.hotel : Icons.hotel_outlined,
-                                size: 20,
-                                color: hasHotel ? const Color(0xFF1E88E5) : Colors.grey,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                hasHotel ? 'Hotel added' : 'No hotel',
-                                style: TextStyle(
-                                  color: hasHotel ? Colors.black87 : Colors.grey,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
+                          _buildModernStatusBadge(
+                            icon: hasHotel ? Icons.hotel_rounded : Icons.hotel_outlined,
+                            label: hasHotel ? 'Hotel' : 'No Hotel',
+                            isActive: hasHotel,
+                            activeColor: const Color(0xFF4F46E5),
+                            isDark: isDark, 
                           ),
-                          Container(width: 1, height: 20, color: const Color(0xFFEEEEEE)),
-                          Row(
-                            children: [
-                              Icon(
-                                hasRoute ? Icons.route : Icons.route_outlined,
-                                size: 20,
-                                color: hasRoute ? const Color(0xFF43A047) : Colors.grey, // Yeşil vurgu
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                hasRoute ? 'Route ready' : 'No route',
-                                style: TextStyle(
-                                  color: hasRoute ? Colors.black87 : Colors.grey,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(width: 12),
+                          _buildModernStatusBadge(
+                            icon: hasRoute ? Icons.alt_route_rounded : Icons.route_outlined,
+                            label: hasRoute ? 'Route Ready' : 'No Route',
+                            isActive: hasRoute,
+                            activeColor: const Color(0xFF10B981),
+                            isDark: isDark,
                           ),
                         ],
                       ),
@@ -214,6 +231,41 @@ class _TripListScreenState extends State<TripListScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernStatusBadge({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required Color activeColor,
+    required bool isDark,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive 
+              ? activeColor.withValues(alpha: 0.1) 
+              : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: isActive ? activeColor : const Color(0xFF94A3B8)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isActive ? activeColor : const Color(0xFF94A3B8),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../models/trip_model.dart';
@@ -19,15 +21,12 @@ class EditTripScreen extends StatefulWidget {
 class _EditTripScreenState extends State<EditTripScreen> {
   final TripService _tripService = TripService();
   final _formKey = GlobalKey<FormState>();
-  
-  late final TextEditingController _dateRangeDisplayController;
+
   late final TextEditingController _destinationController;
   late final TextEditingController _startDateController;
   late final TextEditingController _endDateController;
+  late final TextEditingController _dateRangeDisplayController;
   late final TextEditingController _hotelNameController;
-  late final TextEditingController _hotelLatitudeController;
-  late final TextEditingController _hotelLongitudeController;
-  late final TextEditingController _hotelRatingController;
 
   final List<String> _availablePreferences = [
     'nature',
@@ -47,12 +46,14 @@ class _EditTripScreenState extends State<EditTripScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  double? _currentLat;
+  double? _currentLon;
+  String? _originalHotelName;
+
   @override
   void initState() {
     super.initState();
-    final hotel = widget.trip.hotels.isNotEmpty
-        ? widget.trip.hotels.first
-        : null;
+    final hotel = widget.trip.hotels.isNotEmpty ? widget.trip.hotels.first : null;
 
     _destinationController = TextEditingController(text: widget.trip.destination);
     _startDateController = TextEditingController(text: widget.trip.startDate);
@@ -66,15 +67,55 @@ class _EditTripScreenState extends State<EditTripScreen> {
       widget.trip.preferences.map((preference) => preference.preference),
     );
 
-    _hotelNameController = TextEditingController(text: hotel?.name ?? '');
-    _hotelLatitudeController = TextEditingController(text: hotel?.latitude.toString() ?? '');
-    _hotelLongitudeController = TextEditingController(text: hotel?.longitude.toString() ?? '');
-    _hotelRatingController = TextEditingController(text: hotel?.rating?.toString() ?? '');
+    _originalHotelName = hotel?.name ?? '';
+    _hotelNameController = TextEditingController(text: _originalHotelName);
+
+    _currentLat = hotel?.latitude;
+    _currentLon = hotel?.longitude;
+  }
+
+  @override
+  void dispose() {
+    _destinationController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
+    _dateRangeDisplayController.dispose();
+    _hotelNameController.dispose();
+    super.dispose();
+  }
+
+  Future<Map<String, double>?> _getCoordinates(String hotelName, String destination) async {
+    final searchQueries = [
+      '$hotelName, $destination', 
+      '$hotelName ${destination.replaceAll(',', '')}', 
+      hotelName, 
+    ];
+
+    for (String query in searchQueries) {
+      try {
+        final encodedQuery = Uri.encodeComponent(query);
+        final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=$encodedQuery&format=json&limit=1');
+        
+        final response = await http.get(url, headers: {'User-Agent': 'TravelPlannerApp/1.0'});
+        
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body) as List;
+          if (data.isNotEmpty) {
+            return {
+              'lat': double.parse(data[0]['lat']),
+              'lon': double.parse(data[0]['lon']),
+            };
+          }
+        }
+      } catch (e) {
+        debugPrint('Geocoding error for query "$query": $e');
+      }
+    }
+    return null;
   }
 
   Future<void> _pickDateRange() async {
     final now = DateTime.now();
-    
     final initialStart = DateTime.tryParse(_startDateController.text) ?? now;
     final initialEnd = DateTime.tryParse(_endDateController.text) ?? now.add(const Duration(days: 2));
 
@@ -87,7 +128,7 @@ class _EditTripScreenState extends State<EditTripScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1E88E5), 
+              primary: Color(0xFF4F46E5), 
               onPrimary: Colors.white,
               onSurface: Colors.black87,
             ),
@@ -115,68 +156,22 @@ class _EditTripScreenState extends State<EditTripScreen> {
     final destination = _destinationController.text.trim();
     final startDate = _startDateController.text.trim();
     final endDate = _endDateController.text.trim();
-
     final hotelName = _hotelNameController.text.trim();
-    final hotelLatitudeText = _hotelLatitudeController.text.trim();
-    final hotelLongitudeText = _hotelLongitudeController.text.trim();
-    final hotelRatingText = _hotelRatingController.text.trim();
-
     final preferences = _selectedPreferences.toList();
 
     if (preferences.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please select at least one preference.';
-      });
-      return;
-    }
-
-    if (destination.isEmpty ||
-        startDate.isEmpty ||
-        endDate.isEmpty ||
-        hotelName.isEmpty ||
-        hotelLatitudeText.isEmpty ||
-        hotelLongitudeText.isEmpty) {
-      setState(() {
-        _errorMessage =
-            'Destination, dates, hotel name, latitude and longitude are required.';
-      });
+      setState(() => _errorMessage = 'Please select at least one preference.');
       return;
     }
 
     final parsedStartDate = DateTime.tryParse(startDate);
     final parsedEndDate = DateTime.tryParse(endDate);
-
     if (parsedStartDate == null || parsedEndDate == null) {
-      setState(() {
-        _errorMessage = 'Dates must be valid.';
-      });
+      setState(() => _errorMessage = 'Dates must be valid.');
       return;
     }
-
     if (parsedEndDate.isBefore(parsedStartDate)) {
-      setState(() {
-        _errorMessage = 'End date cannot be before start date.';
-      });
-      return;
-    }
-
-    final hotelLatitude = double.tryParse(hotelLatitudeText);
-    final hotelLongitude = double.tryParse(hotelLongitudeText);
-    final hotelRating = hotelRatingText.isEmpty
-        ? null
-        : double.tryParse(hotelRatingText);
-
-    if (hotelLatitude == null || hotelLongitude == null) {
-      setState(() {
-        _errorMessage = 'Hotel latitude and longitude must be valid numbers.';
-      });
-      return;
-    }
-
-    if (hotelRatingText.isNotEmpty && hotelRating == null) {
-      setState(() {
-        _errorMessage = 'Hotel rating must be a valid number.';
-      });
+      setState(() => _errorMessage = 'End date cannot be before start date.');
       return;
     }
 
@@ -184,6 +179,22 @@ class _EditTripScreenState extends State<EditTripScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
+
+    double finalLat = _currentLat ?? 0.0;
+    double finalLon = _currentLon ?? 0.0;
+
+    if (hotelName != _originalHotelName || _currentLat == null) {
+      final coords = await _getCoordinates(hotelName, destination);
+      if (coords == null) {
+        setState(() {
+          _errorMessage = "We couldn't find the location for '$hotelName'. Please check the hotel name.";
+          _isLoading = false;
+        });
+        return;
+      }
+      finalLat = coords['lat']!;
+      finalLon = coords['lon']!;
+    }
 
     try {
       await _tripService.updateTrip(
@@ -193,13 +204,12 @@ class _EditTripScreenState extends State<EditTripScreen> {
         endDate: endDate,
         preferences: preferences,
         hotelName: hotelName,
-        hotelLatitude: hotelLatitude,
-        hotelLongitude: hotelLongitude,
-        hotelRating: hotelRating,
+        hotelLatitude: finalLat,
+        hotelLongitude: finalLon,
+        hotelRating: null, 
       );
 
       if (!mounted) return;
-
       Navigator.pop(context, {
         'updated': true,
         'shouldAskRegenerate': widget.trip.dayPlans.isNotEmpty,
@@ -231,18 +241,17 @@ class _EditTripScreenState extends State<EditTripScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 12),
-
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: _availablePreferences.map((preference) {
                 final isSelected = _selectedPreferences.contains(preference);
-
                 return FilterChip(
                   label: Text(preference),
                   selected: isSelected,
+                  selectedColor: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                  checkmarkColor: const Color(0xFF4F46E5),
                   onSelected: (selected) {
                     setState(() {
                       if (selected) {
@@ -262,19 +271,6 @@ class _EditTripScreenState extends State<EditTripScreen> {
   }
 
   @override
-  void dispose() {
-    _destinationController.dispose();
-    _startDateController.dispose();
-    _endDateController.dispose();
-    _dateRangeDisplayController.dispose(); 
-    _hotelNameController.dispose();
-    _hotelLatitudeController.dispose();
-    _hotelLongitudeController.dispose();
-    _hotelRatingController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -283,7 +279,7 @@ class _EditTripScreenState extends State<EditTripScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
-          key: _formKey, // Form key eklendi
+          key: _formKey,
           child: Column(
             children: [
               TextFormField(
@@ -295,8 +291,6 @@ class _EditTripScreenState extends State<EditTripScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
-              // Birleştirilmiş Tarih Aralığı Alanı
               TextFormField(
                 controller: _dateRangeDisplayController,
                 readOnly: true,
@@ -332,47 +326,8 @@ class _EditTripScreenState extends State<EditTripScreen> {
                   prefixIcon: Icon(Icons.hotel),
                 ),
               ),
-              const SizedBox(height: 16),
               
-              // Latitude ve Longitude yan yana
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _hotelLatitudeController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-                      decoration: const InputDecoration(
-                        labelText: 'Latitude',
-                        prefixIcon: Icon(Icons.map),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _hotelLongitudeController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-                      decoration: const InputDecoration(
-                        labelText: 'Longitude',
-                        prefixIcon: Icon(Icons.map_outlined),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              TextFormField(
-                controller: _hotelRatingController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Hotel Rating (Optional)',
-                  prefixIcon: Icon(Icons.star_border),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               
               if (_errorMessage != null)
                 Padding(
@@ -386,7 +341,7 @@ class _EditTripScreenState extends State<EditTripScreen> {
                 
               SizedBox(
                 width: double.infinity,
-                height: 50, 
+                height: 50,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _updateTrip,
                   child: _isLoading

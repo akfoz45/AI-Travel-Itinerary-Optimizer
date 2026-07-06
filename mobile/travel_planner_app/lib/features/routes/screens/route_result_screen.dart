@@ -48,7 +48,9 @@ class RouteResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -68,70 +70,60 @@ class RouteResultScreen extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 16),
-
             _summaryItem(
               icon: Icons.calendar_today,
               label: 'Generated days',
               value: '${summary['generated_days'] ?? "-"}',
             ),
-
             const SizedBox(height: 10),
-
             _summaryItem(
               icon: Icons.place,
               label: 'Places',
               value: '${summary['number_of_places'] ?? "-"}',
             ),
-
             const SizedBox(height: 10),
-
             _summaryItem(
               icon: Icons.directions_walk,
               label: 'Distance',
               value: '${summary['total_distance_km'] ?? "-"} km',
             ),
-
             const SizedBox(height: 10),
-
             _summaryItem(
               icon: Icons.access_time,
               label: 'Travel time',
               value: '${summary['total_travel_time_minutes'] ?? "-"} min',
             ),
-
             const SizedBox(height: 10),
-
             _summaryItem(
               icon: Icons.schedule,
               label: 'Visit duration',
               value: '${summary['total_visit_duration_minutes'] ?? "-"} min',
             ),
-
             const SizedBox(height: 10),
-
             _summaryItem(
               icon: Icons.tune,
               label: 'Route mode',
               value: '${summary['route_mode'] ?? "-"}',
             ),
-
             const SizedBox(height: 16),
-
+            
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: const Color(0xFFE0E6EF),
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE0E6EF),
                 ),
               ),
               child: Text(
                 summary['weather_note']?.toString() ??
                     'No weather note available.',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
               ),
             ),
           ],
@@ -140,16 +132,18 @@ class RouteResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDailySummary(Map<String, dynamic> dailySummary) {
+ Widget _buildDailySummary(BuildContext context, Map<String, dynamic> dailySummary) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFFE0E6EF),
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE0E6EF),
         ),
       ),
       child: Text(
@@ -158,11 +152,17 @@ class RouteResultScreen extends StatelessWidget {
         'Travel time: ${dailySummary['total_travel_time_minutes'] ?? "-"} min\n'
         'Visit duration: ${dailySummary['total_visit_duration_minutes'] ?? "-"} min\n'
         'Weather: ${dailySummary['weather_note'] ?? "No weather note"}',
+        style: TextStyle(
+          color: isDark ? Colors.white70 : Colors.black87,
+          height: 1.5,
+        ),
       ),
     );
   }
 
-  Widget _buildTimelineItem(dynamic item, bool isLast) {
+  Widget _buildTimelineItem(BuildContext context, dynamic item, bool isLast) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -177,10 +177,10 @@ class RouteResultScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E88E5),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 3),
+                    border: Border.all(color: isDark ? const Color(0xFF1E293B) : Colors.white, width: 3),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 4,
                       ),
                     ],
@@ -200,26 +200,27 @@ class RouteResultScreen extends StatelessWidget {
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: const Color(0xFF1E88E5).withOpacity(0.3),
+                      color: const Color(0xFF1E88E5).withValues(alpha: 0.3),
                     ),
                   ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 24.0), 
+              padding: const EdgeInsets.only(bottom: 24.0),
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE0E6EF)),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE0E6EF),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.03),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -230,37 +231,34 @@ class RouteResultScreen extends StatelessWidget {
                   children: [
                     Text(
                       item['place_name']?.toString() ?? '-',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    
                     Row(
                       children: [
-                        const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                        Icon(Icons.access_time, size: 16, color: isDark ? Colors.grey[400] : Colors.grey),
                         const SizedBox(width: 4),
                         Text(
                           '${item['arrival_time'] ?? "-"} - ${item['departure_time'] ?? "-"}',
-                          style: const TextStyle(
-                            color: Colors.black54,
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    
-                    // Etiketler (Kategori ve Skor)
                     Wrap(
                       spacing: 8,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF3E0), // Turuncu ton
+                            color: const Color(0xFFFFF3E0),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -271,7 +269,7 @@ class RouteResultScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9), // Yeşil ton
+                            color: const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -291,20 +289,21 @@ class RouteResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDayPlanCard(dynamic dayPlan) {
+  Widget _buildDayPlanCard(BuildContext context, dynamic dayPlan) {
     final routeItems = dayPlan['route_items'] as List<dynamic>? ?? [];
-    final dailySummary = dayPlan['daily_summary'] as Map<String, dynamic>? ?? {};
+    final dailySummary =
+        dayPlan['daily_summary'] as Map<String, dynamic>? ?? {};
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFFE0E6EF)), 
+        side: const BorderSide(color: Color(0xFFE0E6EF)),
       ),
       child: ExpansionTile(
         initiallyExpanded: true,
-        shape: const Border(), 
+        shape: const Border(),
         leading: CircleAvatar(
           backgroundColor: const Color(0xFFE3F2FD),
           foregroundColor: const Color(0xFF1E88E5),
@@ -322,7 +321,7 @@ class RouteResultScreen extends StatelessWidget {
           style: const TextStyle(color: Colors.grey),
         ),
         children: [
-          if (dailySummary.isNotEmpty) _buildDailySummary(dailySummary),
+          if (dailySummary.isNotEmpty) _buildDailySummary(context, dailySummary), 
           if (routeItems.isEmpty)
             const Padding(
               padding: EdgeInsets.all(16),
@@ -337,8 +336,8 @@ class RouteResultScreen extends StatelessWidget {
               child: Column(
                 children: List.generate(routeItems.length, (index) {
                   final item = routeItems[index];
-                  final isLast = index == routeItems.length - 1; 
-                  return _buildTimelineItem(item, isLast); 
+                  final isLast = index == routeItems.length - 1;
+                  return _buildTimelineItem(context, item, isLast); 
                 }),
               ),
             ),
@@ -346,7 +345,6 @@ class RouteResultScreen extends StatelessWidget {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -389,7 +387,7 @@ class RouteResultScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSummaryCard(),
+          _buildSummaryCard(context),
 
           const SizedBox(height: 20),
 
@@ -403,7 +401,7 @@ class RouteResultScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          ...dayPlans.map(_buildDayPlanCard),
+          ...dayPlans.map((dayPlan) => _buildDayPlanCard(context, dayPlan)),
 
           const SizedBox(height: 24),
 
