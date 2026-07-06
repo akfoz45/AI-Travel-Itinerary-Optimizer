@@ -18,7 +18,9 @@ class EditTripScreen extends StatefulWidget {
 
 class _EditTripScreenState extends State<EditTripScreen> {
   final TripService _tripService = TripService();
-
+  final _formKey = GlobalKey<FormState>();
+  
+  late final TextEditingController _dateRangeDisplayController;
   late final TextEditingController _destinationController;
   late final TextEditingController _startDateController;
   late final TextEditingController _endDateController;
@@ -48,66 +50,68 @@ class _EditTripScreenState extends State<EditTripScreen> {
   @override
   void initState() {
     super.initState();
-
     final hotel = widget.trip.hotels.isNotEmpty
         ? widget.trip.hotels.first
         : null;
 
-    _destinationController = TextEditingController(
-      text: widget.trip.destination,
-    );
-
-    _startDateController = TextEditingController(
-      text: widget.trip.startDate,
-    );
-
-    _endDateController = TextEditingController(
-      text: widget.trip.endDate,
+    _destinationController = TextEditingController(text: widget.trip.destination);
+    _startDateController = TextEditingController(text: widget.trip.startDate);
+    _endDateController = TextEditingController(text: widget.trip.endDate);
+    
+    _dateRangeDisplayController = TextEditingController(
+      text: '${widget.trip.startDate} - ${widget.trip.endDate}',
     );
 
     _selectedPreferences.addAll(
-      widget.trip.preferences.map(
-        (preference) => preference.preference,
-      ),
+      widget.trip.preferences.map((preference) => preference.preference),
     );
 
-    _hotelNameController = TextEditingController(
-      text: hotel?.name ?? '',
-    );
-
-    _hotelLatitudeController = TextEditingController(
-      text: hotel?.latitude.toString() ?? '',
-    );
-
-    _hotelLongitudeController = TextEditingController(
-      text: hotel?.longitude.toString() ?? '',
-    );
-
-    _hotelRatingController = TextEditingController(
-      text: hotel?.rating?.toString() ?? '',
-    );
+    _hotelNameController = TextEditingController(text: hotel?.name ?? '');
+    _hotelLatitudeController = TextEditingController(text: hotel?.latitude.toString() ?? '');
+    _hotelLongitudeController = TextEditingController(text: hotel?.longitude.toString() ?? '');
+    _hotelRatingController = TextEditingController(text: hotel?.rating?.toString() ?? '');
   }
 
-  Future<void> _pickDate(TextEditingController controller) async {
+  Future<void> _pickDateRange() async {
     final now = DateTime.now();
+    
+    final initialStart = DateTime.tryParse(_startDateController.text) ?? now;
+    final initialEnd = DateTime.tryParse(_endDateController.text) ?? now.add(const Duration(days: 2));
 
-    final selectedDate = await showDatePicker(
+    final selectedRange = await showDateRangePicker(
       context: context,
-      initialDate: controller.text.isNotEmpty
-          ? DateTime.tryParse(controller.text) ?? now
-          : now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),
+      initialDateRange: DateTimeRange(start: initialStart, end: initialEnd),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1E88E5), 
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
-    if (selectedDate == null) return;
+    if (selectedRange == null) return;
+
+    final startFormatted = DateFormat('yyyy-MM-dd').format(selectedRange.start);
+    final endFormatted = DateFormat('yyyy-MM-dd').format(selectedRange.end);
 
     setState(() {
-      controller.text = DateFormat('yyyy-MM-dd').format(selectedDate);
+      _startDateController.text = startFormatted;
+      _endDateController.text = endFormatted;
+      _dateRangeDisplayController.text = '$startFormatted - $endFormatted';
     });
   }
 
   Future<void> _updateTrip() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final destination = _destinationController.text.trim();
     final startDate = _startDateController.text.trim();
     final endDate = _endDateController.text.trim();
@@ -262,6 +266,7 @@ class _EditTripScreenState extends State<EditTripScreen> {
     _destinationController.dispose();
     _startDateController.dispose();
     _endDateController.dispose();
+    _dateRangeDisplayController.dispose(); 
     _hotelNameController.dispose();
     _hotelLatitudeController.dispose();
     _hotelLongitudeController.dispose();
@@ -277,129 +282,124 @@ class _EditTripScreenState extends State<EditTripScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _destinationController,
-              decoration: const InputDecoration(
-                labelText: 'Destination',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _startDateController,
-              readOnly: true,
-              onTap: () => _pickDate(_startDateController),
-              decoration: const InputDecoration(
-                labelText: 'Start Date',
-                suffixIcon: Icon(Icons.calendar_today),
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _endDateController,
-              readOnly: true,
-              onTap: () => _pickDate(_endDateController),
-              decoration: const InputDecoration(
-                labelText: 'End Date',
-                suffixIcon: Icon(Icons.calendar_today),
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            _buildPreferenceSelector(),
-
-            const SizedBox(height: 24),
-
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Hotel Information',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+        child: Form(
+          key: _formKey, // Form key eklendi
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _destinationController,
+                validator: (value) => value == null || value.isEmpty ? 'Destination is required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Destination',
+                  prefixIcon: Icon(Icons.location_city),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 12),
-
-            TextField(
-              controller: _hotelNameController,
-              decoration: const InputDecoration(
-                labelText: 'Hotel Name',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              
+              // Birleştirilmiş Tarih Aralığı Alanı
+              TextFormField(
+                controller: _dateRangeDisplayController,
+                readOnly: true,
+                onTap: _pickDateRange,
+                validator: (value) => value == null || value.isEmpty ? 'Dates are required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Travel Dates',
+                  prefixIcon: Icon(Icons.calendar_month),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _hotelLatitudeController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 16),
+              
+              _buildPreferenceSelector(),
+              const SizedBox(height: 24),
+              
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Hotel Information',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Hotel Latitude',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              
+              TextFormField(
+                controller: _hotelNameController,
+                validator: (value) => value == null || value.isEmpty ? 'Hotel name is required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Hotel Name',
+                  prefixIcon: Icon(Icons.hotel),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _hotelLongitudeController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 16),
+              
+              // Latitude ve Longitude yan yana
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _hotelLatitudeController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Latitude',
+                        prefixIcon: Icon(Icons.map),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _hotelLongitudeController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Longitude',
+                        prefixIcon: Icon(Icons.map_outlined),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              decoration: const InputDecoration(
-                labelText: 'Hotel Longitude',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _hotelRatingController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Hotel Rating (Optional)',
+                  prefixIcon: Icon(Icons.star_border),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _hotelRatingController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 16),
+              
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    _errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+                
+              SizedBox(
+                width: double.infinity,
+                height: 50, 
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _updateTrip,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Update Trip', style: TextStyle(fontSize: 16)),
+                ),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Hotel Rating',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            if (_errorMessage != null)
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red),
-              ),
-
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _updateTrip,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Update Trip'),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -162,47 +162,167 @@ class RouteResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRouteItem(dynamic item) {
-    return ListTile(
-      leading: CircleAvatar(
-        child: Text('${item['visit_order'] ?? "-"}'),
-      ),
-      title: Text(
-        item['place_name']?.toString() ?? '-',
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: Text(
-        'Category: ${item['category'] ?? "-"}\n'
-        'Source: ${item['source'] ?? "-"}\n'
-        'Time: ${item['arrival_time'] ?? "-"} - ${item['departure_time'] ?? "-"}\n'
-        'Score: ${item['recommendation_score'] ?? "-"}',
+  Widget _buildTimelineItem(dynamic item, bool isLast) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 32,
+            child: Column(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E88E5),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${item['visit_order'] ?? "-"}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: const Color(0xFF1E88E5).withOpacity(0.3),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 24.0), 
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE0E6EF)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['place_name']?.toString() ?? '-',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${item['arrival_time'] ?? "-"} - ${item['departure_time'] ?? "-"}',
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Etiketler (Kategori ve Skor)
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3E0), // Turuncu ton
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            item['category'] ?? "Unknown",
+                            style: const TextStyle(fontSize: 11, color: Color(0xFFE65100), fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9), // Yeşil ton
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Score: ${item['recommendation_score'] ?? "-"}',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildDayPlanCard(dynamic dayPlan) {
     final routeItems = dayPlan['route_items'] as List<dynamic>? ?? [];
-    final dailySummary =
-        dayPlan['daily_summary'] as Map<String, dynamic>? ?? {};
+    final dailySummary = dayPlan['daily_summary'] as Map<String, dynamic>? ?? {};
 
     return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFFE0E6EF)), 
+      ),
       child: ExpansionTile(
         initiallyExpanded: true,
+        shape: const Border(), 
         leading: CircleAvatar(
-          child: Text('${dayPlan['day_number'] ?? "-"}'),
+          backgroundColor: const Color(0xFFE3F2FD),
+          foregroundColor: const Color(0xFF1E88E5),
+          child: Text(
+            '${dayPlan['day_number'] ?? "-"}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         title: Text(
           'Day ${dayPlan['day_number'] ?? "-"}',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        subtitle: Text(dayPlan['date']?.toString() ?? '-'),
+        subtitle: Text(
+          dayPlan['date']?.toString() ?? '-',
+          style: const TextStyle(color: Colors.grey),
+        ),
         children: [
           if (dailySummary.isNotEmpty) _buildDailySummary(dailySummary),
-
           if (routeItems.isEmpty)
             const Padding(
               padding: EdgeInsets.all(16),
@@ -212,7 +332,16 @@ class RouteResultScreen extends StatelessWidget {
               ),
             )
           else
-            ...routeItems.map(_buildRouteItem),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Column(
+                children: List.generate(routeItems.length, (index) {
+                  final item = routeItems[index];
+                  final isLast = index == routeItems.length - 1; 
+                  return _buildTimelineItem(item, isLast); 
+                }),
+              ),
+            ),
         ],
       ),
     );

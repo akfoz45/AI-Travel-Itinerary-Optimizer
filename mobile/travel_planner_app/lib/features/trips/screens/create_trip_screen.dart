@@ -34,6 +34,11 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   final TextEditingController _hotelRatingController =
       TextEditingController(text: '4.5');
 
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _dateRangeDisplayController =
+      TextEditingController(text: '2026-07-01 - 2026-07-03');
+
   final List<String> _availablePreferences = [
     'nature',
     'history',
@@ -57,6 +62,9 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   String? _errorMessage;
 
   Future<void> _createTrip() async {
+
+    if (!_formKey.currentState!.validate()) return;
+
     final destination = _destinationController.text.trim();
     final startDate = _startDateController.text.trim();
     final endDate = _endDateController.text.trim();
@@ -156,24 +164,40 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     }
   }
 
-  Future<void> _pickDate(TextEditingController controller) async {
+  Future<void> _pickDateRange() async {
     final now = DateTime.now();
+    
+    final initialStart = DateTime.tryParse(_startDateController.text) ?? now;
+    final initialEnd = DateTime.tryParse(_endDateController.text) ?? now.add(const Duration(days: 2));
 
-    final selectedDate = await showDatePicker(
+    final selectedRange = await showDateRangePicker(
       context: context,
-      initialDate: controller.text.isNotEmpty
-          ? DateTime.tryParse(controller.text) ?? now
-          : now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),
+      initialDateRange: DateTimeRange(start: initialStart, end: initialEnd),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1E88E5), 
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
-    if (selectedDate == null) return;
+    if (selectedRange == null) return;
 
-    final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+    final startFormatted = DateFormat('yyyy-MM-dd').format(selectedRange.start);
+    final endFormatted = DateFormat('yyyy-MM-dd').format(selectedRange.end);
 
     setState(() {
-      controller.text = formattedDate;
+      _startDateController.text = startFormatted;
+      _endDateController.text = endFormatted;
+      _dateRangeDisplayController.text = '$startFormatted - $endFormatted';
     });
   }
 
@@ -241,136 +265,124 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _destinationController,
-              decoration: const InputDecoration(
-                labelText: 'Destination',
-                hintText: 'Kotor, Montenegro',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _startDateController,
-              readOnly: true,
-              onTap: () => _pickDate(_startDateController),
-              decoration: const InputDecoration(
-                labelText: 'Start Date',
-                hintText: 'YYYY-MM-DD',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.calendar_today),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _endDateController,
-              readOnly: true,
-              onTap: () => _pickDate(_endDateController),
-              decoration: const InputDecoration(
-                labelText: 'End Date',
-                hintText: 'YYYY-MM-DD',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.calendar_today),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            _buildPreferenceSelector(),
-
-            const SizedBox(height: 24),
-
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Hotel Information',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+        child: Form(
+          key: _formKey, 
+          child: Column(
+            children: [
+              TextFormField( 
+                controller: _destinationController,
+                validator: (value) => value == null || value.isEmpty ? 'Destination is required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Destination',
+                  hintText: 'e.g. Kotor, Montenegro',
+                  prefixIcon: Icon(Icons.location_city), 
                 ),
               ),
-            ),
-
-            const SizedBox(height: 12),
-
-            TextField(
-              controller: _hotelNameController,
-              decoration: const InputDecoration(
-                labelText: 'Hotel Name',
-                hintText: 'Hotel Kotor Example',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              
+              // Tek bir Tarih Aralığı Alanı
+              TextFormField(
+                controller: _dateRangeDisplayController,
+                readOnly: true,
+                onTap: _pickDateRange, 
+                validator: (value) => value == null || value.isEmpty ? 'Dates are required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Travel Dates',
+                  prefixIcon: Icon(Icons.calendar_month),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _hotelLatitudeController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 16),
+              
+              _buildPreferenceSelector(),
+              const SizedBox(height: 24),
+              
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Hotel Information',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Hotel Latitude',
-                hintText: '42.425',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              
+              TextFormField(
+                controller: _hotelNameController,
+                validator: (value) => value == null || value.isEmpty ? 'Hotel name is required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Hotel Name',
+                  prefixIcon: Icon(Icons.hotel),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _hotelLongitudeController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 16),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _hotelLatitudeController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Latitude',
+                        prefixIcon: Icon(Icons.map),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _hotelLongitudeController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) => value == null || value.isEmpty ? 'Required' : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Longitude',
+                        prefixIcon: Icon(Icons.map_outlined),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              decoration: const InputDecoration(
-                labelText: 'Hotel Longitude',
-                hintText: '18.771',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _hotelRatingController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Hotel Rating (Optional)',
+                  prefixIcon: Icon(Icons.star_border),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            TextField(
-              controller: _hotelRatingController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 24),
+              
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                
+              SizedBox(
+                width: double.infinity,
+                height: 50, 
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _createTrip,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Create Trip', style: TextStyle(fontSize: 16)),
+                ),
               ),
-              decoration: const InputDecoration(
-                labelText: 'Hotel Rating',
-                hintText: '4.5',
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            if (_errorMessage != null)
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-
-            const SizedBox(height: 16),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _createTrip,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Create Trip'),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
