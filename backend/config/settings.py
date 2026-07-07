@@ -25,6 +25,8 @@ WEATHER_BASE_URL = os.getenv(
     "https://api.open-meteo.com"
 )
 
+GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
+
 #OPENTRIPMAP_API_KEY = os.getenv("OPENTRIPMAP_API_KEY")
 #OPENTRIPMAP_BASE_URL = "https://api.opentripmap.com/0.1/en"
 
@@ -41,7 +43,11 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "172.17.96.1",
+]
 
 
 # Application definition

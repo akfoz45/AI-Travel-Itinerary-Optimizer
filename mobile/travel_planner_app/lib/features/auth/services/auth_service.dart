@@ -56,4 +56,22 @@ class AuthService {
     final accessToken = await _tokenStorage.getAccessToken();
     return accessToken != null && accessToken.isNotEmpty;
   }
+
+  Future<bool> changePassword(String oldPassword, String newPassword) async {
+    try {
+      await _apiClient.put(
+        '/api/auth/change-password/', 
+        requiresAuth: true,
+        body: {
+          'old_password': oldPassword,
+          'new_password': newPassword,
+        },
+      );
+
+      return true;
+      
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
 }

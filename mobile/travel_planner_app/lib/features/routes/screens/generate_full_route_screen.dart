@@ -316,7 +316,7 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
-                  value: _selectedRouteMode,
+                  initialValue: _selectedRouteMode,
                   decoration: const InputDecoration(
                     labelText: 'Route Mode',
                     prefixIcon: Icon(Icons.tune),

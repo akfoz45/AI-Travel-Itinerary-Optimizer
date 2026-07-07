@@ -7,6 +7,7 @@ import 'create_trip_screen.dart';
 import 'trip_detail_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/login_screen.dart';
+import '../../profile/screens/profile_screen.dart';
 
 class TripListScreen extends StatefulWidget {
   const TripListScreen({super.key});
@@ -416,10 +417,59 @@ class _TripListScreenState extends State<TripListScreen> {
       appBar: AppBar(
         title: const Text('My Trips'),
         actions: [
-          IconButton(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.account_circle, size: 28),
+            onSelected: (String value) {
+              if (value == 'profile') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              } else if (value == 'settings') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ayarlar sayfası yakında eklenecek!')),
+                );
+              } else if (value == 'logout') {
+                _logout();
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                const PopupMenuItem<String>(
+                  value: 'profile',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person, color: Colors.black54),
+                      SizedBox(width: 10),
+                      Text('Profil'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'settings',
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, color: Colors.black54),
+                      SizedBox(width: 10),
+                      Text('Ayarlar'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.red),
+                      SizedBox(width: 10),
+                      Text('Çıkış Yap', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ];
+            },
           ),
         ],
       ),
