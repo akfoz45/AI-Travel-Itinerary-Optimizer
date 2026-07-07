@@ -74,10 +74,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => GenerateFullRouteScreen(
-          tripId: widget.tripId,
-          tripPreferences: trip.preferences
-              .map((preference) => preference.preference)
-              .toList(),
+          tripId: trip.tripId,
+          tripPreferences: trip.preferences.map((p) => p.preference).toList(),
+          hasHotel: trip.hotels.isNotEmpty,
         ),
       ),
     );

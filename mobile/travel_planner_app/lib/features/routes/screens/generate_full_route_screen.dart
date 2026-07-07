@@ -6,11 +6,14 @@ import '../services/route_service.dart';
 class GenerateFullRouteScreen extends StatefulWidget {
   final int tripId;
   final List<String> tripPreferences;
+  // 1. ADIM: Otel olup olmadığını kontrol etmek için değişkenimizi ekledik
+  final bool hasHotel; 
 
   const GenerateFullRouteScreen({
     super.key,
     required this.tripId,
     required this.tripPreferences,
+    required this.hasHotel, // Constructor'a ekledik
   });
 
   @override
@@ -21,47 +24,27 @@ class GenerateFullRouteScreen extends StatefulWidget {
 class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
   final RouteService _routeService = RouteService();
 
-  final TextEditingController _startPlaceController =
-      TextEditingController(text: 'Kotor Old Town');
-
-  final TextEditingController _startTimeController =
-      TextEditingController(text: '09:00');
-
-  final TextEditingController _endTimeController =
-      TextEditingController(text: '18:00');
+  // Varsayılan metinleri sildik ki kullanıcı oteli varsa boş bırakabilsin
+  final TextEditingController _startPlaceController = TextEditingController();
+  final TextEditingController _startTimeController = TextEditingController(text: '09:00');
+  final TextEditingController _endTimeController = TextEditingController(text: '18:00');
 
   final List<String> _availableCategories = [
-    'nature',
-    'museum',
-    'history',
-    'tourism',
-    'religious',
-    'restaurant',
-    'cafe',
-    'beach',
-    'park',
-    'shopping',
+    'nature', 'museum', 'history', 'tourism', 'religious', 
+    'restaurant', 'cafe', 'beach', 'park', 'shopping',
   ];
 
   late Set<String> _selectedCategories;
-
   String _selectedRouteMode = 'recommended';
-
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-
     _selectedCategories = widget.tripPreferences.toSet();
-
     if (_selectedCategories.isEmpty) {
-      _selectedCategories = {
-        'nature',
-        'history',
-        'museum',
-      };
+      _selectedCategories = {'nature', 'history', 'museum'};
     }
   }
 
@@ -69,18 +52,24 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     final categories = _selectedCategories.toList();
     final startTime = _startTimeController.text.trim();
     final endTime = _endTimeController.text.trim();
+    final startPlace = _startPlaceController.text.trim();
 
-    if (categories.isEmpty) {
+    // 2. ADIM: KOŞULLU VALIDASYON
+    // Eğer otel YOKSA ve başlangıç noktası BOŞSA hata ver!
+    if (!widget.hasHotel && startPlace.isEmpty) {
       setState(() {
-        _errorMessage = 'Please select at least one category.';
+        _errorMessage = 'Since you have no hotel, a Start Place is required.';
       });
       return;
     }
 
+    if (categories.isEmpty) {
+      setState(() => _errorMessage = 'Please select at least one category.');
+      return;
+    }
+
     if (startTime.isEmpty || endTime.isEmpty) {
-      setState(() {
-        _errorMessage = 'Start time and end time are required.';
-      });
+      setState(() => _errorMessage = 'Start time and end time are required.');
       return;
     }
 
@@ -88,9 +77,7 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     final endParts = endTime.split(':');
 
     if (startParts.length != 2 || endParts.length != 2) {
-      setState(() {
-        _errorMessage = 'Start time and end time must be valid.';
-      });
+      setState(() => _errorMessage = 'Start time and end time must be valid.');
       return;
     }
 
@@ -99,13 +86,8 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     final endHour = int.tryParse(endParts[0]);
     final endMinute = int.tryParse(endParts[1]);
 
-    if (startHour == null ||
-        startMinute == null ||
-        endHour == null ||
-        endMinute == null) {
-      setState(() {
-        _errorMessage = 'Start time and end time must be valid.';
-      });
+    if (startHour == null || startMinute == null || endHour == null || endMinute == null) {
+      setState(() => _errorMessage = 'Start time and end time must be valid.');
       return;
     }
 
@@ -113,9 +95,7 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     final endTotalMinutes = endHour * 60 + endMinute;
 
     if (endTotalMinutes <= startTotalMinutes) {
-      setState(() {
-        _errorMessage = 'End time must be after start time.';
-      });
+      setState(() => _errorMessage = 'End time must be after start time.');
       return;
     }
 
@@ -131,7 +111,8 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
         startTime: startTime,
         endTime: endTime,
         routeMode: _selectedRouteMode,
-        startPlace: _startPlaceController.text,
+        // Backend'e startPlace gönderiyoruz. Eğer boşsa (ve otel varsa) backend oteli kullanacak.
+        startPlace: startPlace, 
       );
 
       if (!mounted) return;
@@ -146,15 +127,12 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-
       setState(() {
         _errorMessage = 'Failed to generate route.\n$error';
       });
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -164,11 +142,9 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
 
     if (controller.text.isNotEmpty) {
       final parts = controller.text.split(':');
-
       if (parts.length == 2) {
         final hour = int.tryParse(parts[0]);
         final minute = int.tryParse(parts[1]);
-
         if (hour != null && minute != null) {
           initialTime = TimeOfDay(hour: hour, minute: minute);
         }
@@ -178,6 +154,18 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     final selectedTime = await showTimePicker(
       context: context,
       initialTime: initialTime,
+      builder: (context, child) {
+        // Tema uyumluluğu eklendi (Karanlık Mod destekli saat seçici)
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark 
+                ? const ColorScheme.dark(primary: Color(0xFF4F46E5)) 
+                : const ColorScheme.light(primary: Color(0xFF4F46E5)),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selectedTime == null) return;
@@ -199,23 +187,19 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
           children: [
             const Text(
               'Categories',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(height: 12),
-
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: _availableCategories.map((category) {
                 final isSelected = _selectedCategories.contains(category);
-
                 return FilterChip(
                   label: Text(category),
                   selected: isSelected,
+                  selectedColor: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                  checkmarkColor: const Color(0xFF4F46E5),
                   onSelected: (selected) {
                     setState(() {
                       if (selected) {
@@ -236,31 +220,26 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
 
   Widget _buildLoadingOverlay() {
     return Container(
-      color: Colors.black.withValues(alpha: 0.35),
+      color: Colors.black.withValues(alpha: 0.4),
       child: const Center(
         child: Card(
+          margin: EdgeInsets.symmetric(horizontal: 32),
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(),
-
-                SizedBox(height: 16),
-
+                CircularProgressIndicator(color: Color(0xFF4F46E5)),
+                SizedBox(height: 20),
                 Text(
                   'Generating your route...',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-
                 SizedBox(height: 8),
-
                 Text(
-                  'This may take a few seconds.',
+                  'Our AI is optimizing the best path for you.',
                   textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
                 ),
               ],
             ),
@@ -282,7 +261,7 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generate Full Route'),
+        title: const Text('Generate Route'),
       ),
       body: Stack(
         children: [
@@ -290,103 +269,94 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                TextField(
+                
+                // 3. ADIM: Dinamik Start Place Kutucuğu
+                TextFormField(
                   controller: _startPlaceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Start Place',
-                    hintText: 'Kotor Old Town',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: widget.hasHotel ? 'Start Place (Optional)' : 'Start Place (Required)',
+                    hintText: widget.hasHotel ? 'Leave blank to start from your hotel' : 'e.g. Kotor Old Town',
+                    prefixIcon: const Icon(Icons.location_on),
+                    suffixIcon: widget.hasHotel ? const Icon(Icons.hotel, color: Color(0xFF4F46E5)) : null,
                   ),
                 ),
 
                 const SizedBox(height: 16),
-
                 _buildCategorySelector(),
-
                 const SizedBox(height: 16),
 
-                TextField(
-                  controller: _startTimeController,
-                  readOnly: true,
-                  onTap: () => _pickTime(_startTimeController),
-                  decoration: const InputDecoration(
-                    labelText: 'Start Time',
-                    hintText: '09:00',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.access_time),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                TextField(
-                  controller: _endTimeController,
-                  readOnly: true,
-                  onTap: () => _pickTime(_endTimeController),
-                  decoration: const InputDecoration(
-                    labelText: 'End Time',
-                    hintText: '18:00',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.access_time),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _startTimeController,
+                        readOnly: true,
+                        onTap: () => _pickTime(_startTimeController),
+                        decoration: const InputDecoration(
+                          labelText: 'Start Time',
+                          prefixIcon: Icon(Icons.access_time),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _endTimeController,
+                        readOnly: true,
+                        onTap: () => _pickTime(_endTimeController),
+                        decoration: const InputDecoration(
+                          labelText: 'End Time',
+                          prefixIcon: Icon(Icons.access_time_filled),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
-                  initialValue: _selectedRouteMode,
+                  value: _selectedRouteMode,
                   decoration: const InputDecoration(
                     labelText: 'Route Mode',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.tune),
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: 'balanced',
-                      child: Text('Balanced'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'shortest',
-                      child: Text('Shortest'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'recommended',
-                      child: Text('Recommended'),
-                    ),
+                    DropdownMenuItem(value: 'balanced', child: Text('Balanced')),
+                    DropdownMenuItem(value: 'shortest', child: Text('Shortest')),
+                    DropdownMenuItem(value: 'recommended', child: Text('Recommended')),
                   ],
                   onChanged: (value) {
                     if (value == null) return;
-
-                    setState(() {
-                      _selectedRouteMode = value;
-                    });
+                    setState(() => _selectedRouteMode = value);
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
                 if (_errorMessage != null)
-                  Text(
-                    _errorMessage!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
-
-                const SizedBox(height: 16),
 
                 SizedBox(
                   width: double.infinity,
+                  height: 50,
                   child: ElevatedButton.icon(
                     onPressed: _isLoading ? null : _generateRoute,
                     icon: const Icon(Icons.route),
-                    label: const Text('Generate Route'),
+                    label: const Text('Generate AI Route', style: TextStyle(fontSize: 16)),
                   ),
                 ),
-
                 const SizedBox(height: 24),
               ],
             ),
           ),
-
           if (_isLoading) _buildLoadingOverlay(),
         ],
       ),

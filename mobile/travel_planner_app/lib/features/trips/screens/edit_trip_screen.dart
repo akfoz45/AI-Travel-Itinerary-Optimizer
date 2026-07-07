@@ -125,12 +125,27 @@ class _EditTripScreenState extends State<EditTripScreen> {
       lastDate: DateTime(now.year + 5),
       initialDateRange: DateTimeRange(start: initialStart, end: initialEnd),
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF4F46E5), 
-              onPrimary: Colors.white,
-              onSurface: Colors.black87,
+            colorScheme: isDark 
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF4F46E5), 
+                    onPrimary: Colors.white,   
+                    surface: Color(0xFF1E293B), 
+                    onSurface: Colors.white,    
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFF4F46E5),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black87,
+                  ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF4F46E5), 
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           child: child!,
