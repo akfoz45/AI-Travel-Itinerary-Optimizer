@@ -13,6 +13,7 @@ from route_optimizer.time_estimator import (
 from route_optimizer.scoring import calculate_place_score, get_route_mode_note
 from weather.weather_service import OpenMeteoWeatherService
 from route_optimizer.score_based_route import score_based_nearest_neighbor_route
+from places.seeders import fetch_and_seed_places_for_city
 
 
 def filter_places_by_categories(categories):
@@ -58,6 +59,27 @@ def prepare_route_data(
 
     places_queryset = filter_places_by_categories(categories)
     places = list(places_queryset)
+
+    ref_lat = None
+    ref_lon = None
+
+    if hotel:
+        ref_lat = hotel.latitude
+        ref_lon = hotel.longitude
+    elif start_place:
+        matched_start_place = find_place_name_case_insensitive(places, start_place)            
+        if matched_start_place:
+            for p in places:
+                if p.place_name == matched_start_place:
+                    ref_lat = p.latitude
+                    ref_lon = p.longitude
+                    break
+
+    if ref_lat is not None and ref_lon is not None:
+        places = [
+            p for p in places 
+            if calculate_distance_km(ref_lat, ref_lon, p.latitude, p.longitude) <= 100.0
+        ]
 
     for place in places:
         place.recommendation_score = calculate_place_score(
@@ -111,12 +133,30 @@ def prepare_route_data(
     }
 
 
-def prepare_places_for_route(categories):
+def prepare_places_for_route(categories, hotel=None, start_place=None):
     places_queryset = filter_places_by_categories(categories)
     places = list(places_queryset)
 
+    ref_lat = None
+    ref_lon = None
+
+    if hotel:
+        ref_lat = hotel.latitude
+        ref_lon = hotel.longitude
+    elif start_place:
+        for p in places:
+            if p.place_name.lower() == start_place.lower():
+                ref_lat = p.latitude
+                ref_lon = p.longitude
+                break
+
+    if ref_lat is not None and ref_lon is not None:
+        places = [
+            p for p in places if calculate_distance_km(ref_lat, ref_lon, p.latitude, p.longitude) <= 100.0
+        ]
+
     if not places:
-        raise ValueError("No places found for given categories.")
+        raise ValueError("No places found for given categories in this destination (100km radius).")
 
     return places
 
@@ -139,7 +179,7 @@ def generate_full_route_for_trip(
     - generates a new score-based route for each day
     - removes planned places from remaining_places
     """
-
+    fetch_and_seed_places_for_city(trip.destination)
     hotel = get_trip_hotel(trip)
 
     if not hotel and not start_place:
@@ -155,7 +195,7 @@ def generate_full_route_for_trip(
         date=trip.start_date,
     )
 
-    places = prepare_places_for_route(categories)
+    places = prepare_places_for_route(categories=categories, hotel=hotel, start_place=start_place)
     remaining_places = places.copy()
 
     total_days = (trip.end_date - trip.start_date).days + 1
