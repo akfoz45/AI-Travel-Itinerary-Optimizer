@@ -1,34 +1,50 @@
 import 'package:flutter/material.dart';
+import '../../places/services/favorite_place_service.dart';
 
-class FavoritePlacesScreen extends StatelessWidget {
+class FavoritePlacesScreen extends StatefulWidget {
   const FavoritePlacesScreen({super.key});
+
+  @override
+  State<FavoritePlacesScreen> createState() => _FavoritePlacesScreenState();
+}
+
+class _FavoritePlacesScreenState extends State<FavoritePlacesScreen> {
+  final FavoritePlaceService _favoriteService = FavoritePlaceService();
+  late Future<List<Map<String, dynamic>>> _favoritesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  void _loadFavorites() {
+    setState(() {
+      _favoritesFuture = _favoriteService.getFavorites();
+    });
+  }
+
+  Future<void> _removeFavorite(int placeId) async {
+    try {
+      await _favoriteService.removeFavorite(placeId);
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Removed from favorites'), backgroundColor: Colors.red),
+      );
+      
+      _loadFavorites();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Şimdilik tasarım amaçlı örnek veriler (Mock Data)
-    // İleride bu verileri backend'den çekeceğiz
-    final List<Map<String, dynamic>> favoritePlaces = [
-      {
-        'name': 'Eiffel Tower',
-        'category': 'History',
-        'rating': 4.8,
-        'image': 'https://picsum.photos/seed/eiffel/400/300',
-      },
-      {
-        'name': 'Louvre Museum',
-        'category': 'Museum',
-        'rating': 4.9,
-        'image': 'https://picsum.photos/seed/louvre/400/300',
-      },
-      {
-        'name': 'Central Park',
-        'category': 'Nature',
-        'rating': 4.7,
-        'image': 'https://picsum.photos/seed/park/400/300',
-      },
-    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -37,13 +53,33 @@ class FavoritePlacesScreen extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
-      body: favoritePlaces.isEmpty
-          ? const Center(child: Text('No favorite places yet.'))
-          : ListView.builder(
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _favoritesFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          final favoritePlaces = snapshot.data ?? [];
+
+          if (favoritePlaces.isEmpty) {
+            return const Center(child: Text('No favorite places yet.'));
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async => _loadFavorites(),
+            child: ListView.builder(
               padding: const EdgeInsets.all(20),
               itemCount: favoritePlaces.length,
               itemBuilder: (context, index) {
                 final place = favoritePlaces[index];
+                
+                final imageUrl = 'https://picsum.photos/seed/${place['place_id']}/400/300';
+                
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
@@ -67,7 +103,7 @@ class FavoritePlacesScreen extends StatelessWidget {
                           bottomLeft: Radius.circular(20),
                         ),
                         child: Image.network(
-                          place['image'],
+                          imageUrl,
                           width: 100,
                           height: 100,
                           fit: BoxFit.cover,
@@ -80,27 +116,26 @@ class FavoritePlacesScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                place['name'],
+                                place['place_name'] ?? 'Unknown Place',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 8),
                               Row(
                                 children: [
                                   Icon(Icons.category_outlined, size: 14, color: Colors.grey.shade500),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    place['category'],
-                                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                                  ),
-                                  const Spacer(),
-                                  const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    place['rating'].toString(),
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                  Expanded(
+                                    child: Text(
+                                      place['category'] ?? 'General',
+                                      style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -109,9 +144,7 @@ class FavoritePlacesScreen extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        onPressed: () {
-                          // TODO: Favorilerden çıkarma işlemi
-                        },
+                        onPressed: () => _removeFavorite(place['place_id']),
                         icon: const Icon(Icons.favorite, color: Colors.red),
                       ),
                       const SizedBox(width: 8),
@@ -120,6 +153,9 @@ class FavoritePlacesScreen extends StatelessWidget {
                 );
               },
             ),
+          );
+        },
+      ),
     );
   }
 }

@@ -5,8 +5,11 @@ from rest_framework import status
 
 from .models import Place, FavoritePlace
 from .serializers import PlaceSerializer, FavoritePlaceSerializer
+from rest_framework.permissions import IsAuthenticated
 
 class PlaceListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         places = Place.objects.all()
 
@@ -24,6 +27,8 @@ class PlaceListAPIView(APIView):
     
 
 class FavoritePlaceListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         favorites = FavoritePlace.objects.filter(user=request.user).select_related("place").order_by("-created_at")
 
@@ -32,6 +37,8 @@ class FavoritePlaceListAPIView(APIView):
         return Response(serializer.data)
     
 class FavoritePlaceCreateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request):
         place_id = request.data.get("place_id")
 
