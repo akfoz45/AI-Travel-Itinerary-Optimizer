@@ -12,7 +12,7 @@ class FavoritePlaceService {
       
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      throw Exception('Favoriler yüklenirken bir hata oluştu: $e');
+      throw Exception('An error occurred while loading favorites: $e');
     }
   }
 
@@ -24,7 +24,7 @@ class FavoritePlaceService {
         body: {'place_id': placeId},
       );
     } catch (e) {
-      throw Exception('Favoriye eklenemedi: $e');
+      throw Exception('Could not be added to favorites: $e');
     }
   }
 
@@ -35,7 +35,7 @@ class FavoritePlaceService {
         requiresAuth: true,
       );
     } catch (e) {
-      throw Exception('Favoriden çıkarılamadı: $e');
+      throw Exception('Could not be removed from favorites: $e');
     }
   }
 }

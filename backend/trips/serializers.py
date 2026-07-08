@@ -11,19 +11,25 @@ class TripPreferenceSerializer(serializers.ModelSerializer):
         ]
 
 class RouteItemSerializer(serializers.ModelSerializer):
+    place_id = serializers.IntegerField(source="place.place_id", read_only=True)
     place_name = serializers.CharField(source="place.place_name", read_only=True)
     category = serializers.CharField(source="place.category", read_only=True)
     source = serializers.CharField(source="place.source", read_only=True)
     recommendation_score = serializers.SerializerMethodField()
+    latitude = serializers.FloatField(source="place.latitude", read_only=True)
+    longitude = serializers.FloatField(source="place.longitude", read_only=True)
 
     class Meta:
         model = RouteItem
         fields = [
             "route_id",
+            "place_id",
             "visit_order",
             "place_name",
             "category",
             "source",
+            "latitude",
+            "longitude",
             "recommendation_score",
             "arrival_time",
             "departure_time",
@@ -56,7 +62,32 @@ class DayPlanSerializer(serializers.ModelSerializer):
         ]
     
     def get_daily_summary(self, obj):
-        return getattr(obj, "daily_summary", None)
+        if getattr(obj, "daily_summary", None) is not None:
+            return obj.daily_summary
+        
+        items = list(obj.route_items.all().select_related().order_by("visit_order"))
+        total_distance = 0.0
+
+        for i in range(len(items) - 1):
+            p1 = items[i].place
+            p2 = items[i + 1].place
+
+            if p1.latitude and p1.longitude and p2.latitude and p2.longitude:
+                import math
+                R = 6371.0 
+                dlat = math.radians(p2.latitude - p1.latitude)
+                dlon = math.radians(p2.longitude - p1.longitude)
+                
+                a = (math.sin(dlat / 2) ** 2 + 
+                     math.cos(math.radians(p1.latitude)) * math.cos(math.radians(p2.latitude)) * math.sin(dlon / 2) ** 2)
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                
+                total_distance += R * c
+                
+        return {
+            "total_distance_km": round(total_distance, 1),
+            "weather_note": getattr(obj, "weather_note", None) 
+        }
     
     def get_route_items(self, obj):
         route_items = obj.route_items.all().order_by("visit_order")

@@ -49,6 +49,7 @@ class DayPlan(models.Model):
     )
     day_number = models.IntegerField()
     date = models.DateField()
+    weather_note = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         managed = False

@@ -112,6 +112,7 @@ class DayPlan {
 
 class RouteItem {
   final int routeId;
+  final int placeId;
   final int visitOrder;
   final String placeName;
   final String? category;
@@ -119,9 +120,12 @@ class RouteItem {
   final double? recommendationScore;
   final String? arrivalTime;
   final String? departureTime;
+  final double latitude;  
+  final double longitude;
 
   RouteItem({
     required this.routeId,
+    required this.placeId,
     required this.visitOrder,
     required this.placeName,
     this.category,
@@ -129,11 +133,14 @@ class RouteItem {
     this.recommendationScore,
     this.arrivalTime,
     this.departureTime,
+    required this.latitude,  
+    required this.longitude,
   });
 
   factory RouteItem.fromJson(Map<String, dynamic> json) {
     return RouteItem(
       routeId: json['route_id'],
+      placeId: json['place_id'] ?? 0,
       visitOrder: json['visit_order'],
       placeName: json['place_name'],
       category: json['category'],
@@ -143,6 +150,8 @@ class RouteItem {
           : (json['recommendation_score'] as num).toDouble(),
       arrivalTime: json['arrival_time'],
       departureTime: json['departure_time'],
+      latitude: (json['latitude'] ?? 0.0).toDouble(),  
+      longitude: (json['longitude'] ?? 0.0).toDouble(),
     );
   }
 }

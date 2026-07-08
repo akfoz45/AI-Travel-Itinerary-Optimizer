@@ -255,7 +255,8 @@ def generate_full_route_for_trip(
             day_plan = DayPlan.objects.create(
                 trip=trip,
                 day_number=day_offset + 1,
-                date=current_date
+                date=current_date,
+                weather_note=get_weather_note_for_context(daily_weather_context)
             )
 
             current_time = start_time
@@ -508,7 +509,8 @@ def generate_day_route_for_trip(
         day_plan = DayPlan.objects.create(
             trip=trip,
             day_number=day_number,
-            date=date
+            date=date,
+            weather_note=get_weather_note_for_context(weather_context)
         )
 
         route_items = []
