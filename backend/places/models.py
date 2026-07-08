@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class Place(models.Model):
     place_id = models.AutoField(primary_key=True)
@@ -17,3 +18,27 @@ class Place(models.Model):
 
     def __str__(self):
         return self.place_name
+    
+class FavoritePlace(models.Model):
+    favorite_id = models.AutoField(primary_key=True)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="favorite_places"
+    )
+
+    place = models.ForeignKey(
+        Place,
+        on_delete=models.CASCADE,
+        related_name="favorited_by"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "favorite_place"
+        unique_together = ("user", "place")
+
+    def __str__(self):
+        return f"{self.user} - {self.place.place_name}"

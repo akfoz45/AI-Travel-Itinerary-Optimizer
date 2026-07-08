@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
 import 'account_settings_screen.dart';
+import 'favorite_places_screen.dart';
+import '../../trips/services/trip_service.dart';
+import '../../trips/models/trip_model.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final TripService _tripService = TripService();
+  late Future<List<Trip>> _tripsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _tripsFuture = _tripService.getTrips();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,7 +27,7 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profilim'),
+        title: const Text('My Profile'),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -28,9 +45,7 @@ class ProfileScreen extends StatelessWidget {
                     backgroundImage: NetworkImage('https://ui-avatars.com/api/?name=Akif+Ozdemir&size=200&background=4F46E5&color=fff'),
                   ),
                   InkWell(
-                    onTap: () {
-                      // TODO: Galeriden veya kameradan fotoğraf seçme işlemi
-                    },
+                    onTap: () {},
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: const BoxDecoration(
@@ -44,9 +59,8 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
             const Text(
-              'Akif Özdemir', 
+              'Akif Ozdemir', 
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
@@ -58,12 +72,78 @@ class ProfileScreen extends StatelessWidget {
                 letterSpacing: 0.5,
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
+
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFF4F46E5).withValues(alpha: 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: FutureBuilder<List<Trip>>(
+                future: _tripsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  int totalTrips = 0;
+                  int totalPlaces = 0;
+                  double totalDistance = 0.0;
+
+                  if (snapshot.hasData) {
+                    final trips = snapshot.data!;
+                    totalTrips = trips.length;
+                    
+                    for (var trip in trips) {
+                      totalPlaces += trip.hotels.length;
+                      
+                      for (var dayPlan in trip.dayPlans) {
+                        if (dayPlan.routeItems.isNotEmpty) {
+                          totalPlaces += dayPlan.routeItems.length;
+                        } else {
+                          totalPlaces += 3; 
+                        }
+
+                        if (dayPlan.dailySummary != null && dayPlan.dailySummary!['total_distance_km'] != null) {
+                          final distanceStr = dayPlan.dailySummary!['total_distance_km'].toString();
+                          totalDistance += double.tryParse(distanceStr) ?? 0.0;
+                        }
+                      }
+                    }
+                  }
+
+                  String formattedDistance = totalDistance.toStringAsFixed(1);
+                  if (formattedDistance.endsWith('.0')) {
+                    formattedDistance = totalDistance.toStringAsFixed(0);
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildStatColumn('Trips', totalTrips.toString(), isDark),
+                      _buildDivider(isDark),
+                      _buildStatColumn('Places', totalPlaces.toString(), isDark),
+                      _buildDivider(isDark),
+                      _buildStatColumn('Distance (km)', formattedDistance, isDark),
+                    ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 32),
 
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Temel Ayarlar',
+                'Personalization',
                 style: TextStyle(
                   fontSize: 18, 
                   fontWeight: FontWeight.bold,
@@ -73,58 +153,33 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            _buildSettingTile(
+            _buildMenuTile(
               icon: Icons.person_outline,
-              title: 'Hesap Bilgileri',
-              subtitle: 'Ad, e-posta ve şifre değiştirme',
+              title: 'Account Settings',
+              subtitle: 'Change name, email, and password',
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const AccountSettingsScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
                 );
               },
             ),
-            _buildSettingTile(
-              icon: Icons.notifications_none_rounded,
-              title: 'Bildirimler',
-              subtitle: 'Uygulama içi bildirim tercihleri',
-              onTap: () {
-                // TODO: Bildirim ayarları sayfasına git
-              },
+            _buildMenuTile(
+              icon: Icons.tune_rounded,
+              title: 'AI Preferences',
+              subtitle: 'Set default travel categories',
+              onTap: () {},
             ),
-            _buildSettingTile(
-              icon: Icons.dark_mode_outlined,
-              title: 'Tema Görünümü',
-              subtitle: 'Aydınlık veya karanlık mod seçimi',
+            _buildMenuTile(
+              icon: Icons.favorite_border_rounded,
+              title: 'Favorite Places',
+              subtitle: 'Your saved locations',
               onTap: () {
-                // TODO: Tema değiştirme bottom sheet'i aç
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const FavoritePlacesScreen()),
+                );
               },
-            ),
-            
-            const SizedBox(height: 32),
-            
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: Çıkış yapma işlemi (AuthService.logout)
-                },
-                icon: const Icon(Icons.logout, color: Colors.red),
-                label: const Text(
-                  'Çıkış Yap', 
-                  style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: Colors.red.withValues(alpha: 0.3), width: 1.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  backgroundColor: Colors.red.withValues(alpha: 0.05),
-                ),
-              ),
             ),
           ],
         ),
@@ -132,7 +187,31 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingTile({
+  Widget _buildStatColumn(String label, String count, bool isDark) {
+    return Column(
+      children: [
+        Text(
+          count,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDivider(bool isDark) {
+    return Container(
+      height: 40,
+      width: 1,
+      color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.3),
+    );
+  }
+
+  Widget _buildMenuTile({
     required IconData icon,
     required String title,
     required String subtitle,
@@ -156,10 +235,7 @@ class ProfileScreen extends StatelessWidget {
           child: Icon(icon, color: const Color(0xFF4F46E5)),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(
-          subtitle, 
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
         onTap: onTap,
       ),

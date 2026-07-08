@@ -92,6 +92,7 @@ class TripSerializer(serializers.ModelSerializer):
             "destination",
             "start_date",
             "end_date",
+            "is_pinned",
             "preferences",
             "day_plans",
             "hotels",

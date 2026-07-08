@@ -8,6 +8,7 @@ import 'trip_detail_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../profile/screens/profile_screen.dart';
+import '../../profile/screens/settings_screen.dart';
 
 class TripListScreen extends StatefulWidget {
   const TripListScreen({super.key});
@@ -134,13 +135,33 @@ class _TripListScreenState extends State<TripListScreen> {
                     Positioned(
                       top: 16,
                       right: 16,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            trip.isPinned = !trip.isPinned;
+                          });
+                          // TODO: İleride AuthService veya TripService üzerinden backend'e bu değişikliği bildiren bir PUT isteği atabiliriz.
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(trip.isPinned ? 'Trip pinned to top' : 'Trip unpinned'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: trip.isPinned 
+                                ? const Color(0xFF4F46E5) 
+                                : Colors.white.withValues(alpha: 0.2), 
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            trip.isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined, 
+                            color: Colors.white, 
+                            size: 20
+                          ),
                         ),
-                        child: const Icon(Icons.favorite_border, color: Colors.white, size: 20),
                       ),
                     ),
                   ],
@@ -383,6 +404,12 @@ class _TripListScreenState extends State<TripListScreen> {
   }
 
   Widget _buildTripList(List<Trip> trips) {
+    trips.sort((a, b) {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return 0; 
+    });
+
     return RefreshIndicator(
       onRefresh: _refreshTrips,
       child: ListView.builder(
@@ -423,13 +450,12 @@ class _TripListScreenState extends State<TripListScreen> {
               if (value == 'profile') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
                 );
               } else if (value == 'settings') {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Ayarlar sayfası yakında eklenecek!')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
                 );
               } else if (value == 'logout') {
                 _logout();
