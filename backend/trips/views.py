@@ -290,3 +290,37 @@ class GenerateFullRouteAPIView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
+    
+class ReorderRouteItemsAPIView(APIView):
+    def put(self, request, plan_id):
+        try:
+            day_plan = DayPlan.objects.get(plan_id=plan_id, trip__user=request.user)
+        except DayPlan.DoesNotExist:
+            return Response({"error": "Day plan was not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        route_ids = request.data.get("route_ids")
+        
+        if not route_ids and hasattr(request.data, "getlist"):
+            route_ids = request.data.getlist("route_ids")
+            if not route_ids:
+                route_ids = request.data.getlist("route_ids[]")
+
+        if not route_ids or not isinstance(route_ids, list):
+            return Response(
+                {"error": "route_ids is missing or invalid."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        updated_count = 0
+        with transaction.atomic():
+            for index, route_id in enumerate(route_ids):
+                updated = RouteItem.objects.filter(pk=route_id).update(visit_order=index + 1)
+                updated_count += updated
+        
+        return Response(
+            {
+                "message": "Route items reordered successfully.",
+                "updated_count": updated_count
+            },
+            status=status.HTTP_200_OK
+        )

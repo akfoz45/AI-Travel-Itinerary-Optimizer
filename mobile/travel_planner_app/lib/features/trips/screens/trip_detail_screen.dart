@@ -21,7 +21,6 @@ class TripDetailScreen extends StatefulWidget {
 
 class _TripDetailScreenState extends State<TripDetailScreen> {
   final TripService _tripService = TripService();
-
   late Future<Trip> _tripFuture;
 
   @override
@@ -80,6 +79,62 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
     if (!mounted) return;
     await _refreshTrip();
+  }
+
+  Widget _buildWeatherBadge(String? weatherNote, bool isDark) {
+    if (weatherNote == null || weatherNote.isEmpty) return const SizedBox.shrink();
+
+    IconData icon = Icons.thermostat;
+    Color color = Colors.grey;
+    String label = 'Normal';
+
+    final lowerNote = weatherNote.toLowerCase();
+
+    if (lowerNote.contains('rain') || lowerNote.contains('shower')) {
+      icon = Icons.water_drop_rounded;
+      color = Colors.blue;
+      label = 'Rainy';
+    } else if (lowerNote.contains('sun') || lowerNote.contains('clear')) {
+      icon = Icons.wb_sunny_rounded;
+      color = Colors.orange;
+      label = 'Sunny';
+    } else if (lowerNote.contains('cloud') || lowerNote.contains('overcast')) {
+      icon = Icons.cloud_rounded;
+      color = Colors.blueGrey;
+      label = 'Cloudy';
+    } else if (lowerNote.contains('snow')) {
+      icon = Icons.ac_unit_rounded;
+      color = Colors.lightBlueAccent;
+      label = 'Snowy';
+    } else if (lowerNote.contains('thunder') || lowerNote.contains('storm')) {
+      icon = Icons.flash_on_rounded;
+      color = Colors.deepPurple;
+      label = 'Storm';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildHeader(Trip trip, bool isDark) {
@@ -315,36 +370,35 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DayMapScreen(
-                                dayPlan: dayPlan,
-                                destination: trip.destination,
-                              ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DayMapScreen(
+                              dayPlan: dayPlan,
+                              destination: trip.destination,
                             ),
-                          );
-                        },
-                        icon: const Icon(Icons.map_rounded),
-                        label: const Text('View on Map'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
                           ),
+                        );
+                      },
+                      icon: const Icon(Icons.map_rounded),
+                      label: const Text('View on Map'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                
+                ),
+                const SizedBox(height: 8),
+
                 if (dayPlan.routeItems.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(16),
@@ -354,34 +408,74 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     ),
                   )
                 else
-                  ...dayPlan.routeItems.map((routeItem) {
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      leading: CircleAvatar(
-                        backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                        child: Text(
-                          routeItem.visitOrder.toString(),
-                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                  ReorderableListView(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false, 
+                    onReorder: (oldIndex, newIndex) async {
+                      if (oldIndex < newIndex) {
+                        newIndex -= 1;
+                      }
+                      
+                      setState(() {
+                        final item = dayPlan.routeItems.removeAt(oldIndex);
+                        dayPlan.routeItems.insert(newIndex, item);
+                      });
+
+                      try {
+                        final routeIds = dayPlan.routeItems.map((e) => e.routeId).toList();
+                        await _tripService.reorderRouteItems(dayPlan.planId, routeIds);
+                        _refreshTrip();
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to reorder: $e')),
+                          );
+                          _refreshTrip();
+                        }
+                      }
+                    },
+                    children: dayPlan.routeItems.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final routeItem = entry.value;
+
+                      return ListTile(
+                        key: ValueKey(routeItem.routeId),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        leading: CircleAvatar(
+                          backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                          child: Text(
+                            (index + 1).toString(), 
+                            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                          ),
                         ),
-                      ),
-                      title: Text(
-                        routeItem.placeName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text('${routeItem.category ?? "General"} • ${routeItem.arrivalTime ?? "TBD"}'),
-                          if (routeItem.recommendationScore != null)
-                            Text('Score: ${routeItem.recommendationScore}'),
-                        ],
-                      ),
-                      trailing: FavoriteButton(
-                        placeId: routeItem.placeId,
-                      ),
-                    );
-                  }),
+                        title: Text(
+                          routeItem.placeName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text('${routeItem.category ?? "General"} • ${routeItem.arrivalTime ?? "TBD"}'),
+                            if (routeItem.recommendationScore != null)
+                              Text('Score: ${routeItem.recommendationScore}'),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FavoriteButton(placeId: routeItem.placeId),
+                            const SizedBox(width: 8),
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Icon(Icons.drag_indicator_rounded, color: Colors.grey.shade400),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 const SizedBox(height: 8),
               ],
             ),
@@ -398,62 +492,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         const SizedBox(height: 4),
         Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0EA5E9))),
       ],
-    );
-  }
-
-  Widget _buildWeatherBadge(String? weatherNote, bool isDark) {
-    if (weatherNote == null || weatherNote.isEmpty) return const SizedBox.shrink();
-
-    IconData icon = Icons.thermostat;
-    Color color = Colors.grey;
-    String label = 'Normal';
-
-    final lowerNote = weatherNote.toLowerCase();
-
-    if (lowerNote.contains('rain') || lowerNote.contains('shower')) {
-      icon = Icons.water_drop_rounded;
-      color = Colors.blue;
-      label = 'Rainy';
-    } else if (lowerNote.contains('sun') || lowerNote.contains('clear')) {
-      icon = Icons.wb_sunny_rounded;
-      color = Colors.orange;
-      label = 'Sunny';
-    } else if (lowerNote.contains('cloud') || lowerNote.contains('overcast')) {
-      icon = Icons.cloud_rounded;
-      color = Colors.blueGrey;
-      label = 'Cloudy';
-    } else if (lowerNote.contains('snow')) {
-      icon = Icons.ac_unit_rounded;
-      color = Colors.lightBlueAccent;
-      label = 'Snowy';
-    } else if (lowerNote.contains('thunder') || lowerNote.contains('storm')) {
-      icon = Icons.flash_on_rounded;
-      color = Colors.deepPurple;
-      label = 'Storm';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -518,7 +556,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       body: FutureBuilder<Trip>(
         future: _tripFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 

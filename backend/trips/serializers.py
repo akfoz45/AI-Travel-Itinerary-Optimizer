@@ -48,7 +48,7 @@ class RouteItemSerializer(serializers.ModelSerializer):
 
 
 class DayPlanSerializer(serializers.ModelSerializer):
-    route_items = RouteItemSerializer(many=True, read_only=True)
+    route_items = serializers.SerializerMethodField()
     daily_summary = serializers.SerializerMethodField()
 
     class Meta:

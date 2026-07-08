@@ -107,4 +107,19 @@ class TripService {
 
     return Trip.fromJson(response);
   }
+
+  Future<void> reorderRouteItems(int planId, List<int> routeIds) async {
+    final response = await _apiClient.put(
+      '${ApiConstants.trips}day-plans/$planId/reorder/',
+      requiresAuth: true,
+      body: {
+        'route_ids': routeIds,
+      },
+    );
+
+    // Eğer backend'den bir hata (error) döndüyse, sessiz kalma ve bunu fırlat!
+    if (response is Map<String, dynamic> && response.containsKey('error')) {
+      throw Exception(response['error']);
+    }
+  }
 }
