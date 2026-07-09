@@ -74,4 +74,34 @@ class AuthService {
       throw Exception(e.toString());
     }
   }
+
+  Future<Map<String, dynamic>> getUserProfile() async {
+    try {
+      final response = await _apiClient.get(
+        '/api/auth/profile/', 
+        requiresAuth: true,
+      );
+      return response as Map<String, dynamic>;
+    } catch (e) {
+      throw Exception('Failed to load profile: $e');
+    }
+  }
+
+  Future<void> updateProfile({
+    required String username, 
+    required String email
+  }) async {
+    try {
+      await _apiClient.put(
+        '/api/auth/profile/', 
+        requiresAuth: true,
+        body: {
+          'username': username, 
+          'email': email,
+        },
+      );
+    } catch (e) {
+      throw Exception('Failed to update profile: $e');
+    }
+  }
 }

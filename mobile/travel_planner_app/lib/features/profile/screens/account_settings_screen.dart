@@ -11,8 +11,8 @@ class AccountSettingsScreen extends StatefulWidget {
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   
-  final TextEditingController _nameController = TextEditingController(text: 'Akif Özdemir');
-  final TextEditingController _emailController = TextEditingController(text: 'akif@example.com');
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _currentPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
   final AuthService _authService = AuthService();
@@ -22,8 +22,26 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _isNewPasswordVisible = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final profile = await _authService.getUserProfile();
+      setState(() {
+        _usernameController.text = profile['username'] ?? '';
+        _emailController.text = profile['email'] ?? '';
+      });
+    } catch (e) {
+      // Hata olursa boş bırakır
+    }
+  }
+  
+  @override
   void dispose() {
-    _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
@@ -32,44 +50,41 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   Future<void> _saveChanges() async {
     if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
       
-      if (_currentPasswordController.text.isNotEmpty && _newPasswordController.text.isNotEmpty) {
-        
-        setState(() => _isLoading = true);
-        
-        try {
-          final success = await _authService.changePassword(
+      try {
+        await _authService.updateProfile(
+          username: _usernameController.text.trim(),
+          email: _emailController.text.trim(),
+        );
+
+        if (_currentPasswordController.text.isNotEmpty && _newPasswordController.text.isNotEmpty) {
+          await _authService.changePassword(
             _currentPasswordController.text,
             _newPasswordController.text,
           );
-
-          if (success && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Your password has been successfully updated!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Navigator.pop(context); 
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(e.toString().replaceAll('Exception: ', '')),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        } finally {
-          if (mounted) {
-            setState(() => _isLoading = false);
-          }
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile information has been updated!')),
-        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile successfully updated!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true); 
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -80,120 +95,102 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Account Information'),
+        title: const Text('Account Settings'),
         centerTitle: true,
-        elevation: 0,
         backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle('Personal Information', isDark),
-              const SizedBox(height: 16),
-              
-              _buildTextField(
-                controller: _nameController,
-                label: 'Name Surname',
-                icon: Icons.person_outline,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(24.0),
+          children: [
+            _buildSectionTitle('Personal Information', isDark),
+            const SizedBox(height: 16),
+            
+            _buildTextField(
+              controller: _usernameController,
+              label: 'Username (Used for Login)',
+              icon: Icons.alternate_email_rounded,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a username.';
+                }
+                if (value.contains(' ')) {
+                  return 'Username cannot contain spaces.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            
+            _buildTextField(
+              controller: _emailController,
+              label: 'Email Address',
+              icon: Icons.email_outlined,
+              keyboardType: TextInputType.emailAddress,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email.';
+                }
+                if (!value.contains('@')) {
+                  return 'Please enter a valid email.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 32),
 
-              _buildTextField(
-                controller: _emailController,
-                label: 'Email Address',
-                icon: Icons.email_outlined,
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty || !value.contains('@')) {
-                    return 'Enter a valid email address.';
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 32),
-              _buildSectionTitle('Change password', isDark),
-              const SizedBox(height: 8),
-              Text(
-                'If you do not wish to change your password, you can leave these fields blank.',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 16),
-
-              _buildPasswordField(
-                controller: _currentPasswordController,
-                label: 'Current Password',
-                isVisible: _isCurrentPasswordVisible,
-                onVisibilityChanged: () {
-                  setState(() {
-                    _isCurrentPasswordVisible = !_isCurrentPasswordVisible;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-
-              _buildPasswordField(
-                controller: _newPasswordController,
-                label: 'New Password',
-                isVisible: _isNewPasswordVisible,
-                onVisibilityChanged: () {
-                  setState(() {
-                    _isNewPasswordVisible = !_isNewPasswordVisible;
-                  });
-                },
-                validator: (value) {
-                  if (value != null && value.isNotEmpty && value.length < 6) {
-                    return 'The password must be at least 6 characters long.';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 40),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveChanges,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: const Color(0xFF4F46E5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 2,
+            _buildSectionTitle('Security', isDark),
+            const SizedBox(height: 16),
+            
+            _buildPasswordField(
+              controller: _currentPasswordController,
+              label: 'Current Password',
+              isVisible: _isCurrentPasswordVisible,
+              onVisibilityChanged: () {
+                setState(() => _isCurrentPasswordVisible = !_isCurrentPasswordVisible);
+              },
+            ),
+            const SizedBox(height: 16),
+            
+            _buildPasswordField(
+              controller: _newPasswordController,
+              label: 'New Password',
+              isVisible: _isNewPasswordVisible,
+              onVisibilityChanged: () {
+                setState(() => _isNewPasswordVisible = !_isNewPasswordVisible);
+              },
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // KAYDET BUTONU
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _saveChanges,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Save Changes',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                  elevation: 2,
                 ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Save Changes',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

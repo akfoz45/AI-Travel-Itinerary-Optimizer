@@ -67,6 +67,7 @@ class DayPlanSerializer(serializers.ModelSerializer):
         
         items = list(obj.route_items.all().select_related().order_by("visit_order"))
         total_distance = 0.0
+        total_travel_time = 0
 
         for i in range(len(items) - 1):
             p1 = items[i].place
@@ -82,10 +83,13 @@ class DayPlanSerializer(serializers.ModelSerializer):
                      math.cos(math.radians(p1.latitude)) * math.cos(math.radians(p2.latitude)) * math.sin(dlon / 2) ** 2)
                 c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
                 
-                total_distance += R * c
+                dist = R * c
+                total_distance += dist
+                total_travel_time += int(dist * 6)
                 
         return {
             "total_distance_km": round(total_distance, 1),
+            "total_travel_time_minutes": total_travel_time,
             "weather_note": getattr(obj, "weather_note", None) 
         }
     

@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from .serializers import RegisterSerializer
 from rest_framework.permissions import IsAuthenticated
 from .serializers import ChangePasswordSerializer
+from django.contrib.auth.models import User
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
@@ -54,3 +55,31 @@ class RegisterAPIView(APIView):
             )
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UserProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        return Response({
+            "username": user.username, 
+            "email": user.email,
+        })
+    
+    def put(self, request):
+        user = request.user
+        email = request.data.get("email", user.email)
+        username = request.data.get("username", user.username) 
+
+        if username != user.username and User.objects.filter(username=username).exists():
+            return Response(
+                {"error": "This username is already taken."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.email = email
+        user.username = username 
+        user.save()
+
+        return Response({"message": "Profile updated successfully."})

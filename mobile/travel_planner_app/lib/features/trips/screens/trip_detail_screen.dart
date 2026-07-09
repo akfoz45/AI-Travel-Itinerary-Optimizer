@@ -347,29 +347,32 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                   children: [
                     Text(dayPlan.date, style: const TextStyle(fontSize: 13, color: Colors.grey)),
                     const SizedBox(width: 12),
-                    if (dayPlan.dailySummary != null)
+                    if (dayPlan.dailySummary?['weather_note'] != null)
                       _buildWeatherBadge(dayPlan.dailySummary!['weather_note'], isDark),
                   ],
                 ),
               ),
               children: [
-                if (dayPlan.dailySummary != null)
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0EA5E9).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildSummaryItem(Icons.place, '${dayPlan.dailySummary!['number_of_places'] ?? 0} Places'),
-                        _buildSummaryItem(Icons.map, '${dayPlan.dailySummary!['total_distance_km'] ?? 0} km'),
-                        _buildSummaryItem(Icons.timer, '${dayPlan.dailySummary!['total_travel_time_minutes'] ?? 0} min'),
-                      ],
-                    ),
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0EA5E9).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
                   ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildSummaryItem(Icons.place, '${dayPlan.routeItems.length} Places'),
+                      
+                      _buildSummaryItem(Icons.map, '${dayPlan.dailySummary?['total_distance_km'] ?? 0} km'),
+                      _buildSummaryItem(
+                        Icons.timer, 
+                        '${dayPlan.dailySummary?['total_travel_time_minutes'] ?? dayPlan.dailySummary?['total_duration'] ?? dayPlan.dailySummary?['total_time'] ?? dayPlan.dailySummary?['travel_time'] ?? 0} min'
+                      ),
+                    ],
+                  ),
+                ),
 
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -413,7 +416,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     buildDefaultDragHandles: false, 
-                    onReorder: (oldIndex, newIndex) async {
+                    onReorderItem: (oldIndex, newIndex) async {
                       if (oldIndex < newIndex) {
                         newIndex -= 1;
                       }

@@ -1,38 +1,42 @@
 import 'package:flutter/material.dart';
-
 import 'route_result_screen.dart';
 import '../services/route_service.dart';
 
 class GenerateFullRouteScreen extends StatefulWidget {
   final int tripId;
   final List<String> tripPreferences;
-  // 1. ADIM: Otel olup olmadığını kontrol etmek için değişkenimizi ekledik
   final bool hasHotel; 
 
   const GenerateFullRouteScreen({
     super.key,
     required this.tripId,
     required this.tripPreferences,
-    required this.hasHotel, // Constructor'a ekledik
+    required this.hasHotel,
   });
 
   @override
-  State<GenerateFullRouteScreen> createState() =>
-      _GenerateFullRouteScreenState();
+  State<GenerateFullRouteScreen> createState() => _GenerateFullRouteScreenState();
 }
 
 class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
   final RouteService _routeService = RouteService();
 
-  // Varsayılan metinleri sildik ki kullanıcı oteli varsa boş bırakabilsin
   final TextEditingController _startPlaceController = TextEditingController();
   final TextEditingController _startTimeController = TextEditingController(text: '09:00');
   final TextEditingController _endTimeController = TextEditingController(text: '18:00');
 
-  final List<String> _availableCategories = [
-    'nature', 'museum', 'history', 'tourism', 'religious', 
-    'restaurant', 'cafe', 'beach', 'park', 'shopping',
-  ];
+  final Map<String, IconData> _categoryIcons = {
+    'nature': Icons.park_rounded,
+    'museum': Icons.museum_rounded,
+    'history': Icons.account_balance_rounded,
+    'tourism': Icons.camera_alt_rounded,
+    'religious': Icons.church_rounded,
+    'restaurant': Icons.restaurant_rounded,
+    'cafe': Icons.local_cafe_rounded,
+    'beach': Icons.beach_access_rounded,
+    'park': Icons.nature_people_rounded,
+    'shopping': Icons.shopping_bag_rounded,
+  };
 
   late Set<String> _selectedCategories;
   String _selectedRouteMode = 'recommended';
@@ -54,12 +58,8 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     final endTime = _endTimeController.text.trim();
     final startPlace = _startPlaceController.text.trim();
 
-    // 2. ADIM: KOŞULLU VALIDASYON
-    // Eğer otel YOKSA ve başlangıç noktası BOŞSA hata ver!
     if (!widget.hasHotel && startPlace.isEmpty) {
-      setState(() {
-        _errorMessage = 'Since you have no hotel, a Start Place is required.';
-      });
+      setState(() => _errorMessage = 'Since you have no hotel, a Start Place is required.');
       return;
     }
 
@@ -76,20 +76,14 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     final startParts = startTime.split(':');
     final endParts = endTime.split(':');
 
-    if (startParts.length != 2 || endParts.length != 2) {
-      setState(() => _errorMessage = 'Start time and end time must be valid.');
-      return;
-    }
+    if (startParts.length != 2 || endParts.length != 2) return;
 
     final startHour = int.tryParse(startParts[0]);
     final startMinute = int.tryParse(startParts[1]);
     final endHour = int.tryParse(endParts[0]);
     final endMinute = int.tryParse(endParts[1]);
 
-    if (startHour == null || startMinute == null || endHour == null || endMinute == null) {
-      setState(() => _errorMessage = 'Start time and end time must be valid.');
-      return;
-    }
+    if (startHour == null || startMinute == null || endHour == null || endMinute == null) return;
 
     final startTotalMinutes = startHour * 60 + startMinute;
     final endTotalMinutes = endHour * 60 + endMinute;
@@ -111,29 +105,22 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
         startTime: startTime,
         endTime: endTime,
         routeMode: _selectedRouteMode,
-        // Backend'e startPlace gönderiyoruz. Eğer boşsa (ve otel varsa) backend oteli kullanacak.
         startPlace: startPlace, 
       );
 
       if (!mounted) return;
 
-      Navigator.push(
+      Navigator.pushReplacement( 
         context,
         MaterialPageRoute(
-          builder: (_) => RouteResultScreen(
-            routeResponse: response,
-          ),
+          builder: (_) => RouteResultScreen(routeResponse: response),
         ),
       );
     } catch (error) {
       if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Failed to generate route.\n$error';
-      });
+      setState(() => _errorMessage = 'AI Engine failed to generate route.\n$error');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -155,12 +142,11 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
       context: context,
       initialTime: initialTime,
       builder: (context, child) {
-        // Tema uyumluluğu eklendi (Karanlık Mod destekli saat seçici)
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: isDark 
-                ? const ColorScheme.dark(primary: Color(0xFF4F46E5)) 
+                ? const ColorScheme.dark(primary: Color(0xFF4F46E5), surface: Color(0xFF1E293B)) 
                 : const ColorScheme.light(primary: Color(0xFF4F46E5)),
           ),
           child: child!,
@@ -172,193 +158,250 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
 
     final formattedHour = selectedTime.hour.toString().padLeft(2, '0');
     final formattedMinute = selectedTime.minute.toString().padLeft(2, '0');
-
-    setState(() {
-      controller.text = '$formattedHour:$formattedMinute';
-    });
-  }
-
-  Widget _buildCategorySelector() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Categories',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _availableCategories.map((category) {
-                final isSelected = _selectedCategories.contains(category);
-                return FilterChip(
-                  label: Text(category),
-                  selected: isSelected,
-                  selectedColor: const Color(0xFF4F46E5).withValues(alpha: 0.1),
-                  checkmarkColor: const Color(0xFF4F46E5),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedCategories.add(category);
-                      } else {
-                        _selectedCategories.remove(category);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingOverlay() {
-    return Container(
-      color: Colors.black.withValues(alpha: 0.4),
-      child: const Center(
-        child: Card(
-          margin: EdgeInsets.symmetric(horizontal: 32),
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(color: Color(0xFF4F46E5)),
-                SizedBox(height: 20),
-                Text(
-                  'Generating your route...',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Our AI is optimizing the best path for you.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _startPlaceController.dispose();
-    _startTimeController.dispose();
-    _endTimeController.dispose();
-    super.dispose();
+    setState(() => controller.text = '$formattedHour:$formattedMinute');
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Generate Route'),
+        title: const Text('AI Preferences', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildSectionTitle('Starting Point', isDark),
+                _buildStartPlaceInput(isDark),
                 
-                // 3. ADIM: Dinamik Start Place Kutucuğu
-                TextFormField(
-                  controller: _startPlaceController,
-                  decoration: InputDecoration(
-                    labelText: widget.hasHotel ? 'Start Place (Optional)' : 'Start Place (Required)',
-                    hintText: widget.hasHotel ? 'Leave blank to start from your hotel' : 'e.g. Kotor Old Town',
-                    prefixIcon: const Icon(Icons.location_on),
-                    suffixIcon: widget.hasHotel ? const Icon(Icons.hotel, color: Color(0xFF4F46E5)) : null,
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-                _buildCategorySelector(),
-                const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _startTimeController,
-                        readOnly: true,
-                        onTap: () => _pickTime(_startTimeController),
-                        decoration: const InputDecoration(
-                          labelText: 'Start Time',
-                          prefixIcon: Icon(Icons.access_time),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _endTimeController,
-                        readOnly: true,
-                        onTap: () => _pickTime(_endTimeController),
-                        decoration: const InputDecoration(
-                          labelText: 'End Time',
-                          prefixIcon: Icon(Icons.access_time_filled),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedRouteMode,
-                  decoration: const InputDecoration(
-                    labelText: 'Route Mode',
-                    prefixIcon: Icon(Icons.tune),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'balanced', child: Text('Balanced')),
-                    DropdownMenuItem(value: 'shortest', child: Text('Shortest')),
-                    DropdownMenuItem(value: 'recommended', child: Text('Recommended')),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() => _selectedRouteMode = value);
-                  },
-                ),
+                const SizedBox(height: 24),
+                _buildSectionTitle('Daily Time Window', isDark),
+                _buildTimeSelectors(isDark),
 
                 const SizedBox(height: 24),
+                _buildSectionTitle('Travel Pace', isDark),
+                _buildRouteModeSelector(isDark),
 
+                const SizedBox(height: 24),
+                _buildSectionTitle('Interests & Categories', isDark),
+                _buildCategorySelector(isDark),
+
+                const SizedBox(height: 32),
                 if (_errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      _errorMessage!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red))),
+                      ],
                     ),
                   ),
 
+                // Generate Button
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
+                  height: 56,
+                  child: ElevatedButton(
                     onPressed: _isLoading ? null : _generateRoute,
-                    icon: const Icon(Icons.route),
-                    label: const Text('Generate AI Route', style: TextStyle(fontSize: 16)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4F46E5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 4,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.auto_awesome, color: Colors.white),
+                        SizedBox(width: 12),
+                        Text('Generate AI Route', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 40),
               ],
             ),
           ),
-          if (_isLoading) _buildLoadingOverlay(),
+          if (_isLoading) _buildLoadingOverlay(isDark),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.grey.shade300 : Colors.grey.shade800),
+      ),
+    );
+  }
+
+  Widget _buildStartPlaceInput(bool isDark) {
+    return TextFormField(
+      controller: _startPlaceController,
+      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        labelText: widget.hasHotel ? 'Start Place (Optional)' : 'Start Place (Required)',
+        hintText: widget.hasHotel ? 'Leave blank to start from your hotel' : 'e.g. City Center',
+        prefixIcon: Icon(Icons.location_on_outlined, color: isDark ? Colors.grey.shade400 : Colors.grey),
+        suffixIcon: widget.hasHotel ? const Icon(Icons.hotel, color: Color(0xFF4F46E5)) : null,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+  Widget _buildTimeSelectors(bool isDark) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildTimeInput('Start Time', Icons.wb_sunny_outlined, _startTimeController, isDark),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildTimeInput('End Time', Icons.nights_stay_outlined, _endTimeController, isDark),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeInput(String label, IconData icon, TextEditingController controller, bool isDark) {
+    return TextFormField(
+      controller: controller,
+      readOnly: true,
+      onTap: () => _pickTime(controller),
+      style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        labelText: label,
+        prefixIcon: Icon(icon, color: const Color(0xFF4F46E5)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+  Widget _buildRouteModeSelector(bool isDark) {
+    return Row(
+      children: [
+        _buildModeCard('Relaxed', 'shortest', Icons.directions_walk_rounded, isDark),
+        const SizedBox(width: 10),
+        _buildModeCard('Balanced', 'balanced', Icons.balance_rounded, isDark),
+        const SizedBox(width: 10),
+        _buildModeCard('Discovery', 'recommended', Icons.explore_rounded, isDark),
+      ],
+    );
+  }
+
+  Widget _buildModeCard(String title, String value, IconData icon, bool isDark) {
+    final isSelected = _selectedRouteMode == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedRouteMode = value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? const Color(0xFF4F46E5).withValues(alpha: 0.15) 
+                : (isDark ? const Color(0xFF1E293B) : Colors.white),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF4F46E5) : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: isSelected ? const Color(0xFF4F46E5) : Colors.grey, size: 28),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: isSelected ? const Color(0xFF4F46E5) : (isDark ? Colors.white70 : Colors.black87),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategorySelector(bool isDark) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: _categoryIcons.keys.map((category) {
+        final isSelected = _selectedCategories.contains(category);
+        return FilterChip(
+          label: Text(category.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          avatar: Icon(_categoryIcons[category], size: 18, color: isSelected ? Colors.white : const Color(0xFF4F46E5)),
+          selected: isSelected,
+          showCheckmark: false,
+          selectedColor: const Color(0xFF4F46E5),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          labelStyle: TextStyle(color: isSelected ? Colors.white : (isDark ? Colors.grey.shade300 : Colors.black87)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isSelected ? Colors.transparent : (isDark ? Colors.grey.shade800 : Colors.grey.shade300)),
+          ),
+          onSelected: (selected) {
+            setState(() {
+              if (selected) {
+                _selectedCategories.add(category);
+              } else {
+                if (_selectedCategories.length > 1) {
+                  _selectedCategories.remove(category);
+                } else {
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You must select at least one category.')));
+                }
+              }
+            });
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildLoadingOverlay(bool isDark) {
+    return Container(
+      color: isDark ? Colors.black.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.8),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFF4F46E5), strokeWidth: 3),
+            const SizedBox(height: 24),
+            Text(
+              'Optimizing Your AI Route...',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Analyzing distances, opening hours, and preferences.',
+              style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+            ),
+          ],
+        ),
       ),
     );
   }

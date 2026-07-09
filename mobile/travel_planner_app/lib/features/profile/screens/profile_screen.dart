@@ -3,6 +3,7 @@ import 'account_settings_screen.dart';
 import 'favorite_places_screen.dart';
 import '../../trips/services/trip_service.dart';
 import '../../trips/models/trip_model.dart';
+import '../../auth/services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,11 +15,25 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final TripService _tripService = TripService();
   late Future<List<Trip>> _tripsFuture;
+  final AuthService _authService = AuthService();
+  Map<String, dynamic>? _userProfile;
 
   @override
   void initState() {
     super.initState();
     _tripsFuture = _tripService.getTrips();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await _authService.getUserProfile();
+      setState(() {
+        _userProfile = profile;
+      });
+    } catch (e) {
+      // Hata yönetimi
+    }
   }
 
   @override
@@ -40,9 +55,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 55,
-                    backgroundImage: NetworkImage('https://ui-avatars.com/api/?name=Akif+Ozdemir&size=200&background=4F46E5&color=fff'),
+                    backgroundImage: NetworkImage(
+                      'https://ui-avatars.com/api/?name=${_userProfile?['username'] ?? 'User'}&size=200&background=4F46E5&color=fff'
+                      ),
                   ),
                   InkWell(
                     onTap: () {},
@@ -59,13 +76,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Akif Ozdemir', 
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Text(
+              _userProfile?['username'] ?? 'Loading...', 
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Text(
-              'akif@example.com',
+              _userProfile?['email'] ?? '',
               style: TextStyle(
                 color: isDark ? Colors.white70 : Colors.black54, 
                 fontSize: 15,
@@ -157,11 +174,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.person_outline,
               title: 'Account Settings',
               subtitle: 'Change name, email, and password',
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
                 );
+                if (result == true) {
+                  _loadProfile();
+                }
               },
             ),
             _buildMenuTile(

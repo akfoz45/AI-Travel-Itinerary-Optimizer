@@ -9,6 +9,7 @@ import '../../auth/services/auth_service.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../profile/screens/settings_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TripListScreen extends StatefulWidget {
   const TripListScreen({super.key});
@@ -22,11 +23,36 @@ class _TripListScreenState extends State<TripListScreen> {
   final AuthService _authService = AuthService();
 
   late Future<List<Trip>> _tripsFuture;
+  Set<int> _pinnedTripIds = {};
 
   @override
   void initState() {
     super.initState();
+    _loadPinnedTrips();
     _tripsFuture = _tripService.getTrips();
+  }
+
+  Future<void> _loadPinnedTrips() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pinnedList = prefs.getStringList('pinned_trips') ?? [];
+    setState(() {
+      _pinnedTripIds = pinnedList.map((e) => int.tryParse(e) ?? 0).toSet();
+    });
+  }
+
+  Future<void> _togglePin(Trip trip) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (_pinnedTripIds.contains(trip.tripId)) {
+        _pinnedTripIds.remove(trip.tripId);
+        trip.isPinned = false;
+      } else {
+        _pinnedTripIds.add(trip.tripId);
+        trip.isPinned = true;
+      }
+    });
+    final stringList = _pinnedTripIds.map((e) => e.toString()).toList();
+    await prefs.setStringList('pinned_trips', stringList);
   }
 
   Future<void> _refreshTrips() async {
@@ -137,10 +163,7 @@ class _TripListScreenState extends State<TripListScreen> {
                       right: 16,
                       child: InkWell(
                         onTap: () {
-                          setState(() {
-                            trip.isPinned = !trip.isPinned;
-                          });
-                          // TODO: İleride AuthService veya TripService üzerinden backend'e bu değişikliği bildiren bir PUT isteği atabiliriz.
+                          _togglePin(trip); 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(trip.isPinned ? 'Trip pinned to top' : 'Trip unpinned'),
@@ -404,6 +427,10 @@ class _TripListScreenState extends State<TripListScreen> {
   }
 
   Widget _buildTripList(List<Trip> trips) {
+    for (var trip in trips) {
+      trip.isPinned = _pinnedTripIds.contains(trip.tripId);
+    }
+    
     trips.sort((a, b) {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
