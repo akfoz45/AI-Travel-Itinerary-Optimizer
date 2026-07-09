@@ -38,4 +38,14 @@ class FavoritePlaceService {
       throw Exception('Could not be removed from favorites: $e');
     }
   }
+
+  Future<bool> checkIfFavorite(int placeId) async {
+    try {
+      final favorites = await getFavorites();
+      
+      return favorites.any((place) => place['place_id'] == placeId || place['id'] == placeId);
+    } catch (e) {
+      return false; 
+    }
+  }
 }

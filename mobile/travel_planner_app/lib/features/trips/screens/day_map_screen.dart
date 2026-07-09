@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/trip_model.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class DayMapScreen extends StatelessWidget {
   final DayPlan dayPlan;
@@ -45,7 +46,7 @@ class DayMapScreen extends StatelessWidget {
         children: [
           TileLayer(
             urlTemplate: isDark 
-                ? 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png'
+                ? 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png?api_key=${dotenv.env['STADIA_MAPS_API_KEY']}'
                 : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: 'com.example.travel_planner_app',
           ),

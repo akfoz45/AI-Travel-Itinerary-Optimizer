@@ -6,6 +6,7 @@ import '../../routes/screens/generate_full_route_screen.dart';
 import 'edit_trip_screen.dart';
 import '../../places/widgets/favorite_button.dart'; 
 import 'day_map_screen.dart';
+import '../services/pdf_export_service.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final int tripId;
@@ -540,6 +541,28 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              onPressed: () async {
+                final trip = await _tripFuture;
+                if (!context.mounted) return;
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Generating PDF...')),
+                );
+                
+                await PdfExportService().generateAndShareTripPdf(trip);
+              },
+              icon: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
+              tooltip: 'Export & Share',
+            ),
+          ),
+          
+          Container(
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.3),
@@ -547,7 +570,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             ),
             child: IconButton(
               onPressed: _confirmDeleteTrip,
-              icon: const Icon(Icons.delete_outline, color: Colors.white),
+              icon: const Icon(Icons.delete_outline, color: Colors.white, size: 20),
               tooltip: 'Delete Trip',
             ),
           ),

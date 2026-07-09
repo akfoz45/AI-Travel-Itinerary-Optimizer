@@ -19,11 +19,32 @@ class _FavoriteButtonState extends State<FavoriteButton> {
   final FavoritePlaceService _favoriteService = FavoritePlaceService();
   late bool _isFavorite;
   bool _isLoading = false;
+  bool _isInitialCheckDone = false; 
 
   @override
   void initState() {
     super.initState();
     _isFavorite = widget.initialIsFavorite;
+    _checkCurrentFavoriteStatus(); 
+  }
+
+  Future<void> _checkCurrentFavoriteStatus() async {
+    try {
+      final bool isFav = await _favoriteService.checkIfFavorite(widget.placeId);
+      
+      if (mounted) {
+        setState(() {
+          _isFavorite = isFav;
+          _isInitialCheckDone = true; 
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isInitialCheckDone = true; 
+        });
+      }
+    }
   }
 
   Future<void> _toggleFavorite() async {
@@ -67,6 +88,17 @@ class _FavoriteButtonState extends State<FavoriteButton> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialCheckDone) {
+      return const Padding(
+        padding: EdgeInsets.all(12.0),
+        child: SizedBox(
+          width: 16, 
+          height: 16, 
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey),
+        ),
+      );
+    }
+
     return IconButton(
       onPressed: _isLoading ? null : _toggleFavorite,
       icon: _isLoading 

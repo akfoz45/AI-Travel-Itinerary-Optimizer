@@ -117,7 +117,6 @@ class TripService {
       },
     );
 
-    // Eğer backend'den bir hata (error) döndüyse, sessiz kalma ve bunu fırlat!
     if (response is Map<String, dynamic> && response.containsKey('error')) {
       throw Exception(response['error']);
     }
