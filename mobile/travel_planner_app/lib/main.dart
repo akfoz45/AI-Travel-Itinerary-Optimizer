@@ -4,16 +4,21 @@ import 'package:provider/provider.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'features/trips/providers/trip_provider.dart';
+import 'features/routes/providers/route_provider.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await dotenv.load(fileName: ".env");
   
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => TripProvider()),
+        ChangeNotifierProvider(create: (_) => RouteProvider()), 
+      ],
       child: const TravelPlannerApp(),
     ),
   );

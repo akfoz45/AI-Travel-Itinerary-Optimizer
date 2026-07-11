@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'route_result_screen.dart';
 import '../services/route_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/route_provider.dart';
 
 class GenerateFullRouteScreen extends StatefulWidget {
   final int tripId;
@@ -89,38 +91,29 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     final endTotalMinutes = endHour * 60 + endMinute;
 
     if (endTotalMinutes <= startTotalMinutes) {
-      setState(() => _errorMessage = 'End time must be after start time.');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('End time must be after start time.')));
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final routeProvider = Provider.of<RouteProvider>(context, listen: false);
+    routeProvider.clearError();
 
-    try {
-      final response = await _routeService.generateFullRoute(
-        tripId: widget.tripId,
-        categories: categories,
-        startTime: startTime,
-        endTime: endTime,
-        routeMode: _selectedRouteMode,
-        startPlace: startPlace, 
-      );
+    final response = await routeProvider.generateFullRoute(
+      tripId: widget.tripId,
+      categories: categories,
+      startTime: startTime,
+      endTime: endTime,
+      routeMode: _selectedRouteMode,
+      startPlace: startPlace,
+    );
 
-      if (!mounted) return;
-
-      Navigator.pushReplacement( 
+    if (response != null && mounted) {
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => RouteResultScreen(routeResponse: response),
         ),
       );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _errorMessage = 'AI Engine failed to generate route.\n$error');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 

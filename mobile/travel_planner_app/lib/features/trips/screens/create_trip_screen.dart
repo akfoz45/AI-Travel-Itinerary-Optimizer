@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-
+import 'package:provider/provider.dart';
+import '../providers/trip_provider.dart';
 import '../services/trip_service.dart';
 
 class CreateTripScreen extends StatefulWidget {
@@ -145,56 +146,41 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     final hotelName = _hotelNameController.text.trim();
     final preferences = _selectedPreferences.toList();
 
+    final tripProvider = Provider.of<TripProvider>(context, listen: false);
+
     if (preferences.isEmpty) {
-      setState(() => _errorMessage = 'Please select at least one preference.');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one preference.')));
       return;
     }
 
     final parsedStartDate = DateTime.tryParse(startDate);
     final parsedEndDate = DateTime.tryParse(endDate);
+
     if (parsedEndDate != null && parsedStartDate != null && parsedEndDate.isBefore(parsedStartDate)) {
-      setState(() => _errorMessage = 'End date cannot be before start date.');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('End date cannot be before start date.')));
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    tripProvider.clearError();
 
     final coords = await _getCoordinates(hotelName, destination);
-    
     if (coords == null) {
-      setState(() {
-        _errorMessage = "We couldn't find the location for '$hotelName'. Please check the hotel name.";
-        _isLoading = false;
-      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("We couldn't find the location for '$hotelName'.")));
       return;
     }
 
-    try {
-      await _tripService.createTrip(
-        destination: destination,
-        startDate: startDate,
-        endDate: endDate,
-        preferences: preferences,
-        hotelName: hotelName,
-        hotelLatitude: coords['lat']!,
-        hotelLongitude: coords['lon']!,
-        hotelRating: null, 
-      );
-      if (!mounted) return;
+    final success = await tripProvider.createTrip(
+      destination: destination,
+      startDate: startDate,
+      endDate: endDate,
+      preferences: preferences,
+      hotelName: hotelName,
+      hotelLatitude: coords['lat']!,
+      hotelLongitude: coords['lon']!,
+    );
+
+    if (success && mounted) {
       Navigator.pop(context, true);
-    } catch (error) {
-      setState(() {
-        _errorMessage = 'Failed to create trip.\n$error';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -303,29 +289,39 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               
               const SizedBox(height: 24),
               
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createTrip,
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
-                      : const Text('Create Trip', style: TextStyle(fontSize: 16)),
-                ),
+              Consumer<TripProvider>(
+                builder: (context, provider, child) {
+                  if (provider.errorMessage != null) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        provider.errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+
+              Consumer<TripProvider>(
+                builder: (context, provider, child) {
+                  return SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: provider.isLoading ? null : _createTrip,
+                      child: provider.isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Text('Create Trip', style: TextStyle(fontSize: 16)),
+                    ),
+                  );
+                },
               ),
             ],
           ),

@@ -77,21 +77,23 @@ class DayMapScreen extends StatelessWidget {
   }
 
   Widget _buildMarkerWidget(int order) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF4F46E5),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
-        ],
-      ),
-      child: Center(
-        child: Text(
-          order.toString(),
-          style: const TextStyle(
-            color: Colors.white, 
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+    return RepaintBoundary(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF4F46E5),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+          ],
+        ),
+        child: Center(
+          child: Text(
+            order.toString(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
         ),
       ),

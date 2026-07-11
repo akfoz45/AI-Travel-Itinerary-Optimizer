@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from datetime import time
 from django.db import transaction
+from rest_framework import viewsets
+from .models import Trip
+from .serializers import TripSerializer
 
 from .models import Trip, DayPlan, RouteItem
 from .serializers import (
@@ -324,3 +327,9 @@ class ReorderRouteItemsAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
+    
+class TripViewSet(viewsets.ModelViewSet):
+    serializer_class = TripSerializer
+
+    def get_queryset(self):
+        return Trip.objects.select_related('user').prefetch_related('places').all()
