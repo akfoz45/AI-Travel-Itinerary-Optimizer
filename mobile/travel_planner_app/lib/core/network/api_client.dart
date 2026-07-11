@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 import '../storage/token_storage.dart';
+import 'api_exception.dart';
 
 class ApiClient {
   final TokenStorage _tokenStorage = TokenStorage();
@@ -132,7 +133,7 @@ class ApiClient {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return null;
       }
-      throw Exception('Request failed. Status code: ${response.statusCode}');
+      throw ApiException('Request failed.', response.statusCode);
     }
 
     if (!contentType.contains('application/json')) {
