@@ -7,6 +7,7 @@ from .views import (
     GenerateRouteAPIView,
     GenerateFullRouteAPIView,
     ReorderRouteItemsAPIView,
+    JoinTripAPIView,
 )
 
 urlpatterns = [
@@ -17,4 +18,5 @@ urlpatterns = [
     path("<int:trip_id>/generate-route/", GenerateRouteAPIView.as_view(), name="generate-route"),
     path("<int:trip_id>/generate-full-route/", GenerateFullRouteAPIView.as_view(), name="generate-full-route"),
     path("day-plans/<int:plan_id>/reorder/", ReorderRouteItemsAPIView.as_view(), name="route-item-reorder"),
+    path("join/", JoinTripAPIView.as_view(), name="join_trip"),
 ]

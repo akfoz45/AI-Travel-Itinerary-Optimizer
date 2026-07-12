@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from places.models import Place
+import uuid
 
 class Trip(models.Model):
     trip_id = models.AutoField(primary_key=True)
@@ -14,6 +15,8 @@ class Trip(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     is_pinned = models.BooleanField(default=False)
+    collaborators = models.ManyToManyField(User, related_name="shared_trips", blank=True)
+    invite_code = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     class Meta:
         managed = False

@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,6 +6,7 @@ from django.db import transaction
 from rest_framework import viewsets
 from .models import Trip
 from .serializers import TripSerializer
+from rest_framework.permissions import IsAuthenticated
 
 from .models import Trip, DayPlan, RouteItem
 from .serializers import (
@@ -19,11 +19,7 @@ from .serializers import (
     GenerateRouteSerializer,
     GenerateFullRouteSerializer,
     )
-from places.models import Place
 from route_optimizer.services import generate_full_route_for_trip, generate_day_route_for_trip
-from route_optimizer.time_estimator import estimate_travel_time_minutes, add_minutes_to_time
-from route_optimizer.graph_builder import build_weighted_graph
-from route_optimizer.nearest_neighbor import nearest_neighbor_route
 from route_optimizer.scoring import get_route_mode_weights
 
 class TripListAPIView(APIView):
@@ -333,3 +329,31 @@ class TripViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Trip.objects.select_related('user').prefetch_related('places').all()
+    
+class JoinTripAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def psot(self, request):
+        invite_code = request.data.get("invite_code")
+
+        if not invite_code:
+            return Response({"error": "Invite code is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            trip = Trip.objects.get(invite_code=invite_code)
+
+            if trip.user == request.user or request.user in trip.collaborators.all():
+                return Response(
+                    {"message": "You are already in this trip.", "trip_id": trip.id}, 
+                    status=status.HTTP_200_OK
+                )
+            
+            trip.collaborators.add(request.user)
+
+            return Response(
+                {"message": "Successfully joined the trip!", "trip_id": trip.id}, 
+                status=status.HTTP_200_OK
+            )
+        
+        except Trip.DoesNotExist:
+            return Response({"error": "Invalid invite code."}, status=status.HTTP_404_NOT_FOUND)

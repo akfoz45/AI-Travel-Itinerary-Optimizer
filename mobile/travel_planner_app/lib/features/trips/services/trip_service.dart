@@ -1,23 +1,38 @@
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../models/trip_model.dart';
+import 'trip_cache_service.dart';
 
 class TripService {
   final ApiClient _apiClient = ApiClient();
+  final TripCacheService _cacheService = TripCacheService();
 
   Future<List<Trip>> getTrips() async {
-    final response = await _apiClient.get(
-      ApiConstants.trips,
-      requiresAuth: true,
-    );
+    try {
+      final response = await _apiClient.get(
+        ApiConstants.trips,
+        requiresAuth: true,
+      );
 
-    if (response is! List) {
-      throw Exception('Trip response is invalid.');
+      if (response is! List) {
+        throw Exception('Trip response is invalid.');
+      }
+
+      await _cacheService.cacheTrips(response);
+
+      return response
+          .map((tripJson) => Trip.fromJson(tripJson))
+          .toList();
+
+    } catch (e) {
+      final cachedTrips = await _cacheService.getCachedTrips();
+      
+      if (cachedTrips != null && cachedTrips.isNotEmpty) {
+        return cachedTrips; 
+      }
+
+      throw Exception('No internet connection and no offline data available.');
     }
-
-    return response
-        .map((tripJson) => Trip.fromJson(tripJson))
-        .toList();
   }
 
   Future<Trip> createTrip({

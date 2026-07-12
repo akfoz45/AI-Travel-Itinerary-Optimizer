@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/trip_provider.dart';
-import '../services/trip_service.dart';
 
 class CreateTripScreen extends StatefulWidget {
   const CreateTripScreen({super.key});
@@ -14,7 +13,6 @@ class CreateTripScreen extends StatefulWidget {
 }
 
 class _CreateTripScreenState extends State<CreateTripScreen> {
-  final TripService _tripService = TripService();
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _destinationController = TextEditingController();
@@ -37,9 +35,6 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   ];
 
   final Set<String> _selectedPreferences = {};
-
-  bool _isLoading = false;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -164,6 +159,9 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     tripProvider.clearError();
 
     final coords = await _getCoordinates(hotelName, destination);
+
+    if (!mounted) return;
+
     if (coords == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("We couldn't find the location for '$hotelName'.")));
       return;

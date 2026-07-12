@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'route_result_screen.dart';
-import '../services/route_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/route_provider.dart';
+import 'route_result_screen.dart';
 
 class GenerateFullRouteScreen extends StatefulWidget {
   final int tripId;
@@ -21,8 +20,6 @@ class GenerateFullRouteScreen extends StatefulWidget {
 }
 
 class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
-  final RouteService _routeService = RouteService();
-
   final TextEditingController _startPlaceController = TextEditingController();
   final TextEditingController _startTimeController = TextEditingController(text: '09:00');
   final TextEditingController _endTimeController = TextEditingController(text: '18:00');
@@ -42,8 +39,6 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
 
   late Set<String> _selectedCategories;
   String _selectedRouteMode = 'recommended';
-  bool _isLoading = false;
-  String? _errorMessage;
 
   @override
   void initState() {
@@ -61,17 +56,17 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
     final startPlace = _startPlaceController.text.trim();
 
     if (!widget.hasHotel && startPlace.isEmpty) {
-      setState(() => _errorMessage = 'Since you have no hotel, a Start Place is required.');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Since you have no hotel, a Start Place is required.')));
       return;
     }
 
     if (categories.isEmpty) {
-      setState(() => _errorMessage = 'Please select at least one category.');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select at least one category.')));
       return;
     }
 
     if (startTime.isEmpty || endTime.isEmpty) {
-      setState(() => _errorMessage = 'Start time and end time are required.');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Start time and end time are required.')));
       return;
     }
 
@@ -104,11 +99,13 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
       startTime: startTime,
       endTime: endTime,
       routeMode: _selectedRouteMode,
-      startPlace: startPlace,
+      startPlace: startPlace, 
     );
 
-    if (response != null && mounted) {
-      Navigator.pushReplacement(
+    if (!mounted) return;
+
+    if (response != null) {
+      Navigator.pushReplacement( 
         context,
         MaterialPageRoute(
           builder: (_) => RouteResultScreen(routeResponse: response),
@@ -189,46 +186,70 @@ class _GenerateFullRouteScreenState extends State<GenerateFullRouteScreen> {
                 _buildCategorySelector(isDark),
 
                 const SizedBox(height: 32),
-                if (_errorMessage != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.red),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red))),
-                      ],
-                    ),
-                  ),
+                
+                Consumer<RouteProvider>(
+                  builder: (context, provider, child) {
+                    if (provider.errorMessage != null) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.red),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(provider.errorMessage!, style: const TextStyle(color: Colors.red))),
+                          ],
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
 
-                // Generate Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _generateRoute,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4F46E5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 4,
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.auto_awesome, color: Colors.white),
-                        SizedBox(width: 12),
-                        Text('Generate AI Route', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ],
-                    ),
-                  ),
+                Consumer<RouteProvider>(
+                  builder: (context, provider, child) {
+                    return SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: provider.isLoading ? null : _generateRoute,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4F46E5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 4,
+                        ),
+                        child: provider.isLoading 
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.auto_awesome, color: Colors.white),
+                                SizedBox(width: 12),
+                                Text('Generate AI Route', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                              ],
+                            ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 40),
               ],
             ),
           ),
-          if (_isLoading) _buildLoadingOverlay(isDark),
+          
+          Consumer<RouteProvider>(
+            builder: (context, provider, child) {
+              if (provider.isLoading) {
+                return _buildLoadingOverlay(isDark);
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
       ),
     );
