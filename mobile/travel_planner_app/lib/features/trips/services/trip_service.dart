@@ -148,4 +148,26 @@ class TripService {
       throw Exception(response['error']);
     }
   }
+
+  Future<void> leaveTrip(int tripId) async {
+    final response = await _apiClient.delete(
+      '/api/trips/$tripId/leave/',
+      requiresAuth: true,
+    );
+    
+    if (response is Map<String, dynamic> && response.containsKey('error')) {
+      throw Exception(response['error']);
+    }
+  }
+
+  Future<void> removeCollaborator(int tripId, String username) async {
+    final response = await _apiClient.delete(
+      '/api/trips/$tripId/collaborators/$username/',
+      requiresAuth: true,
+    );
+    
+    if (response is Map<String, dynamic> && response.containsKey('error')) {
+      throw Exception(response['error']);
+    }
+  }
 }

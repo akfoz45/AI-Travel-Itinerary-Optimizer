@@ -391,3 +391,47 @@ class JoinTripAPIView(APIView):
             {"message": f"Successfully joined as {role}!", "trip_id": trip.trip_id, "role": role}, 
             status=status.HTTP_200_OK
         )
+    
+class LeaveTripAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, trip_id):
+        collab = TripCollaborator.objects.filter(trip_id=trip_id, user=request.user).first()
+
+        if collab:
+            collab.delete()
+            notify_trip_update(trip_id)
+            return Response({"message": "Successfully left the trip."}, status=status.HTTP_200_OK)
+        
+        is_owner = Trip.objects.filter(trip_id=trip_id, user=request.user).exists()
+        if is_owner:
+            return Response(
+                {"error": "You are the owner of this trip. You cannot leave it, you must delete it."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return Response(
+            {"error": "You are not a participant of this trip."}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+class RemoveCollaboratorAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, trip_id, username):
+        try:
+            trip = Trip.objects.get(trip_id=trip_id, user=request.user)
+        except Trip.DoesNotExist:
+            return Response(
+                {"error": "Trip not found or you do not have permission to remove users."}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        collab = TripCollaborator.objects.filter(trip=trip, user__username=username).first()
+        
+        if collab:
+            collab.delete()
+            notify_trip_update(trip_id)
+            return Response({"message": f"{username} removed from the trip."}, status=status.HTTP_200_OK)
+            
+        return Response({"error": "User is not in this trip."}, status=status.HTTP_404_NOT_FOUND)

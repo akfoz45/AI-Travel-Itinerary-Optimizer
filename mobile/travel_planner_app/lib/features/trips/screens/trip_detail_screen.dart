@@ -1049,6 +1049,25 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     ),
                     title: Text(collab.username, style: const TextStyle(fontWeight: FontWeight.w500)),
                     subtitle: Text(isEditor ? 'Editor' : 'Viewer'),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.person_remove_rounded, color: Colors.redAccent, size: 20),
+                      tooltip: 'Remove User',
+                      onPressed: () async {
+                        try {
+                          await _tripService.removeCollaborator(trip.tripId, collab.username);
+                          if (!context.mounted) return;
+                          Navigator.pop(context); 
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${collab.username} removed!'), backgroundColor: Colors.green),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+                          );
+                        }
+                      },
+                    ),
                   );
                 }),
                 
@@ -1065,6 +1084,43 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             ),
           ),
           actions: [
+            TextButton(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Leave Trip?'),
+                    content: const Text('Are you sure you want to leave this trip? You will need an invite code to join again.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true), 
+                        child: const Text('Leave', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true) {
+                  try {
+                    await _tripService.leaveTrip(trip.tripId);
+                    if (!context.mounted) return;
+                    Navigator.pop(context); 
+                    Navigator.pop(context); 
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('You left the trip.'), backgroundColor: Colors.orange),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              child: const Text('Leave Trip', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            ),
+            
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Close'),

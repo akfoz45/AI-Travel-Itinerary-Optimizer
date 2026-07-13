@@ -8,6 +8,8 @@ from .views import (
     GenerateFullRouteAPIView,
     ReorderRouteItemsAPIView,
     JoinTripAPIView,
+    LeaveTripAPIView,
+    RemoveCollaboratorAPIView,
 )
 
 urlpatterns = [
@@ -19,4 +21,6 @@ urlpatterns = [
     path("<int:trip_id>/generate-full-route/", GenerateFullRouteAPIView.as_view(), name="generate-full-route"),
     path("day-plans/<int:plan_id>/reorder/", ReorderRouteItemsAPIView.as_view(), name="route-item-reorder"),
     path("join/", JoinTripAPIView.as_view(), name="join_trip"),
+    path("<int:trip_id>/leave/", LeaveTripAPIView.as_view(), name="leave-trip"),
+    path("<int:trip_id>/collaborators/<str:username>/", RemoveCollaboratorAPIView.as_view(), name="remove-collaborator"),
 ]
