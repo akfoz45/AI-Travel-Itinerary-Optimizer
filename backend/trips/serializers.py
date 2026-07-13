@@ -1,7 +1,6 @@
 from rest_framework import serializers
-from .models import Trip, TripPreference, DayPlan, RouteItem, Hotel
+from .models import Trip, TripPreference, DayPlan, RouteItem, Hotel, TripCollaborator
 from route_optimizer.scoring import calculate_place_score
-
 class TripPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = TripPreference
@@ -115,7 +114,16 @@ class HotelSerializer(serializers.ModelSerializer):
             "rating",
         ]       
 
+class CollaboratorSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+
+    class Meta:
+        model = TripCollaborator
+        fields = ["username", "role"]
+
 class TripSerializer(serializers.ModelSerializer):
+    owner_username = serializers.CharField(source="user.username", read_only=True)
+    collaborators_list = CollaboratorSerializer(source="tripcollaborator_set", many=True, read_only=True)
     preferences = TripPreferenceSerializer(many=True, read_only=True)
     day_plans = DayPlanSerializer(many=True, read_only=True)
     hotels = HotelSerializer(many=True, read_only=True)
@@ -123,15 +131,10 @@ class TripSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trip
         fields = [
-            "trip_id",
-            "destination",
-            "start_date",
-            "end_date",
-            "invite_code",
-            "is_pinned",
-            "preferences",
-            "day_plans",
-            "hotels",
+            'trip_id', 'destination', 'start_date', 'end_date', 
+            'invite_code', 'viewer_invite_code', 'is_pinned', 
+            'owner_username', 'collaborators_list', 'preferences', 
+            'hotels', 'day_plans'
         ]
 
 class TripCreateSerializer(serializers.ModelSerializer):

@@ -15,8 +15,9 @@ class Trip(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     is_pinned = models.BooleanField(default=False)
-    collaborators = models.ManyToManyField(User, related_name="shared_trips", blank=True, db_table="trip_collaborators")
+    collaborators = models.ManyToManyField(User, through='TripCollaborator', related_name="shared_trips", blank=True)
     invite_code = models.UUIDField(default=uuid.uuid4, editable=False)
+    viewer_invite_code = models.UUIDField(default=uuid.uuid4, editable=False)
 
     class Meta:
         managed = False
@@ -105,3 +106,13 @@ class Hotel(models.Model):
 
     def __str__(self):
         return self.name
+    
+class TripCollaborator(models.Model):
+    trip = models.ForeignKey("Trip", on_delete=models.CASCADE, db_column="trip_id")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column="user_id")
+    role = models.CharField(max_length=10, default="editor")
+
+    class Meta:
+        managed = False
+        db_table = "trip_collaborators"
+        unique_together = (('trip', 'user'),)

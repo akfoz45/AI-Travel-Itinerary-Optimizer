@@ -4,6 +4,9 @@ class Trip {
   final String startDate;
   final String endDate;
   final String inviteCode;
+  final String viewerInviteCode;
+  final String ownerUsername; 
+  final List<Collaborator> collaborators;
   bool isPinned;
   final List<TripPreference> preferences;
   final List<Hotel> hotels;
@@ -15,6 +18,9 @@ class Trip {
     required this.startDate,
     required this.endDate,
     this.inviteCode = '',
+    this.viewerInviteCode = '',
+    this.ownerUsername = '',
+    this.collaborators = const [],
     this.isPinned = false,
     this.preferences = const [],
     this.hotels = const [],
@@ -28,7 +34,12 @@ class Trip {
       startDate: json['start_date'],
       endDate: json['end_date'],
       inviteCode: json['invite_code'] ?? '',
+      viewerInviteCode: json['viewer_invite_code'] ?? '',
       isPinned: json['is_pinned'] ?? false,
+      ownerUsername: json['owner_username'] ?? '',
+      collaborators: (json['collaborators_list'] as List? ?? []) 
+          .map((item) => Collaborator.fromJson(item))
+          .toList(),
       preferences: (json['preferences'] as List? ?? [])
           .map((item) => TripPreference.fromJson(item))
           .toList(),
@@ -158,3 +169,20 @@ class RouteItem {
     );
   }
 }
+
+class Collaborator {
+    final String username;
+    final String role;
+
+    Collaborator({
+      required this.username,
+      required this.role,
+    });
+
+    factory Collaborator.fromJson(Map<String, dynamic> json) {
+      return Collaborator(
+        username: json['username'] ?? 'Unknown',
+        role: json['role'] ?? 'viewer',
+      );
+    }
+  }

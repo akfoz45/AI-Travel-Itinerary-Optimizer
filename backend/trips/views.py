@@ -6,7 +6,7 @@ from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
-from .models import Trip, DayPlan, RouteItem
+from .models import Trip, DayPlan, RouteItem, TripCollaborator
 from .serializers import (
     TripSerializer, 
     TripCreateSerializer, 
@@ -54,7 +54,10 @@ class TripListAPIView(APIView):
 class TripDetailAPIView(APIView):
     def get(self, request, trip_id):
         try:
-            trip = Trip.objects.get(Q(user=request.user) | Q(collaborators=request.user), trip_id=trip_id)
+            trip = Trip.objects.get(
+                Q(user=request.user) | Q(collaborators=request.user),
+                trip_id=trip_id
+            )
         except Trip.DoesNotExist:
             return Response(
                 {"error": "Trip not found."},
@@ -86,8 +89,8 @@ class TripDetailAPIView(APIView):
     def put(self, request, trip_id):
         try:
             trip = Trip.objects.get(
-                trip_id=trip_id,
-                user=request.user
+                Q(user=request.user) | Q(tripcollaborator__user=request.user, tripcollaborator__role='editor'),
+                trip_id=trip_id
             )
         except Trip.DoesNotExist:
             return Response(
@@ -121,8 +124,8 @@ class DayPlanCreateAPIView(APIView):
     def post(self, request, trip_id):
         try:
             trip = Trip.objects.get(
-                trip_id=trip_id,
-                user=request.user
+                Q(user=request.user) | Q(tripcollaborator__user=request.user, tripcollaborator__role='editor'),
+                trip_id=trip_id
             )
         except Trip.DoesNotExist:
             return Response(
@@ -144,8 +147,8 @@ class RouteItemCreateAPIView(APIView):
     def post(self, request, plan_id):
         try:
             day_plan = DayPlan.objects.get(
-                plan_id=plan_id,
-                trip__user=request.user
+                Q(trip__user=request.user) | Q(trip__tripcollaborator__user=request.user, trip__tripcollaborator__role='editor'),
+                plan_id=plan_id
             )
         except DayPlan.DoesNotExist:
             return Response(
@@ -167,8 +170,8 @@ class GenerateRouteAPIView(APIView):
     def post(self, request, trip_id):
         try:
             trip = Trip.objects.get(
-                trip_id=trip_id,
-                user=request.user
+                Q(user=request.user) | Q(tripcollaborator__user=request.user, tripcollaborator__role='editor'),
+                trip_id=trip_id
             )
         except Trip.DoesNotExist:
             return Response(
@@ -239,8 +242,8 @@ class GenerateFullRouteAPIView(APIView):
     def post(self, request, trip_id):
         try:
             trip = Trip.objects.get(
-                trip_id=trip_id,
-                user=request.user
+                Q(user=request.user) | Q(tripcollaborator__user=request.user, tripcollaborator__role='editor'),
+                trip_id=trip_id
             )
         except Trip.DoesNotExist:
             return Response(
@@ -312,7 +315,10 @@ class GenerateFullRouteAPIView(APIView):
 class ReorderRouteItemsAPIView(APIView):
     def put(self, request, plan_id):
         try:
-            day_plan = DayPlan.objects.get(plan_id=plan_id, trip__user=request.user)
+            day_plan = DayPlan.objects.get(
+                Q(trip__user=request.user) | Q(trip__tripcollaborator__user=request.user, trip__tripcollaborator__role='editor'),
+                plan_id=plan_id
+            )
         except DayPlan.DoesNotExist:
             return Response({"error": "Day plan was not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -356,30 +362,32 @@ class TripViewSet(viewsets.ModelViewSet):
 class JoinTripAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    # HATA DÜZELTİLDİ: psot -> post
     def post(self, request):
         invite_code = request.data.get("invite_code")
 
         if not invite_code:
             return Response({"error": "Invite code is required."}, status=status.HTTP_400_BAD_REQUEST)
         
-        try:
-            trip = Trip.objects.get(invite_code=invite_code)
-
-            if trip.user == request.user or request.user in trip.collaborators.all():
-                return Response(
-                    {"message": "You are already in this trip.", "trip_id": trip.trip_id}, 
-                    status=status.HTTP_200_OK
-                )
-            
-            trip.collaborators.add(request.user)
-
-            notify_trip_update(trip.trip_id)
-
-            return Response(
-                {"message": "Successfully joined the trip!", "trip_id": trip.trip_id}, 
-                status=status.HTTP_200_OK
-            )
+        trip = Trip.objects.filter(invite_code=invite_code).first()
+        role = 'editor'
         
-        except Trip.DoesNotExist:
+        if not trip:
+            trip = Trip.objects.filter(viewer_invite_code=invite_code).first()
+            role = 'viewer'
+            
+        if not trip:
             return Response({"error": "Invalid invite code."}, status=status.HTTP_404_NOT_FOUND)
+
+        if trip.user == request.user:
+            return Response({"message": "You are the owner of this trip.", "trip_id": trip.trip_id}, status=status.HTTP_200_OK)
+
+        collaborator, created = TripCollaborator.objects.update_or_create(
+            trip=trip, user=request.user,
+            defaults={'role': role}
+        )
+
+        notify_trip_update(trip.trip_id)
+        return Response(
+            {"message": f"Successfully joined as {role}!", "trip_id": trip.trip_id, "role": role}, 
+            status=status.HTTP_200_OK
+        )

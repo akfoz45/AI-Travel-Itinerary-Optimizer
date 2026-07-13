@@ -594,12 +594,26 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 final trip = await _tripFuture;
                 if (!context.mounted) return;
                 
-                if (trip.inviteCode.isNotEmpty) {
-                  _showInviteDialog(trip.inviteCode);
-                }
+                _showInviteDialog(trip);
               },
               icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 20),
               tooltip: 'Invite Friends',
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              onPressed: () async {
+                final trip = await _tripFuture;
+                if (!context.mounted) return;
+                _showCollaboratorsDialog(trip);
+              },
+              icon: const Icon(Icons.group_rounded, color: Colors.white, size: 20),
+              tooltip: 'View People',
             ),
           ),
           Container(
@@ -790,63 +804,270 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     );
   }
 
-  void _showInviteDialog(String code) {
+  void _showInviteDialog(Trip trip) {
+    String selectedRole = 'editor'; 
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final primaryColor = const Color(0xFF4F46E5);
+            final activeCode = selectedRole == 'editor' ? trip.inviteCode : trip.viewerInviteCode;
+
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.share_rounded, color: primaryColor, size: 32),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Share Your Trip',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Invite friends to view or collaborate.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 24),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => selectedRole = 'editor'),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: selectedRole == 'editor' ? primaryColor.withValues(alpha: 0.1) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: selectedRole == 'editor' ? primaryColor : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                                  width: selectedRole == 'editor' ? 2 : 1,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.edit_rounded, color: selectedRole == 'editor' ? primaryColor : Colors.grey),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Editor', 
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold, 
+                                      color: selectedRole == 'editor' ? primaryColor : Colors.grey
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => selectedRole = 'viewer'),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: selectedRole == 'viewer' ? primaryColor.withValues(alpha: 0.1) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: selectedRole == 'viewer' ? primaryColor : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                                  width: selectedRole == 'viewer' ? 2 : 1,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.visibility_rounded, color: selectedRole == 'viewer' ? primaryColor : Colors.grey),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Viewer', 
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold, 
+                                      color: selectedRole == 'viewer' ? primaryColor : Colors.grey
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.vpn_key_rounded, size: 18, color: primaryColor),
+                          const SizedBox(width: 10),
+                          SelectableText(
+                            activeCode,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: activeCode));
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${selectedRole.toUpperCase()} code copied to clipboard!'),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.copy_rounded, color: Colors.white),
+                        label: const Text(
+                          'Copy Link', 
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        );
+      },
+    );
+  }
+
+  void _showCollaboratorsDialog(Trip trip) {
     showDialog(
       context: context,
       builder: (context) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
+        
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
             children: [
-              const Icon(Icons.group_add_rounded, color: Color(0xFF4F46E5)),
+              const Icon(Icons.people_alt_rounded, color: Color(0xFF4F46E5)),
               const SizedBox(width: 10),
-              Text('Invite Friends', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+              Text('People', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Share this code with your friends so they can join this trip. Once they join, you can plan your route together in real-time!',
-                style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.3)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                    child: const Icon(Icons.star_rounded, color: Color(0xFF4F46E5)),
+                  ),
+                  title: Text(trip.ownerUsername, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Owner'),
                 ),
-                child: SelectableText(
-                  code,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
+                if (trip.collaborators.isNotEmpty) const Divider(),
+                
+                ...trip.collaborators.map((collab) {
+                  final isEditor = collab.role == 'editor';
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                      child: Icon(
+                        isEditor ? Icons.edit_rounded : Icons.visibility_rounded,
+                        color: isEditor ? Colors.green : Colors.grey,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(collab.username, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    subtitle: Text(isEditor ? 'Editor' : 'Viewer'),
+                  );
+                }),
+                
+                if (trip.collaborators.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Text(
+                      'No one has joined this trip yet.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade500),
+                    ),
+                  ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Close', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: code));
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Invite code copied to clipboard!'), backgroundColor: Colors.green),
-                );
-              },
-              icon: const Icon(Icons.copy_rounded, size: 18, color: Colors.white),
-              label: const Text('Copy Code', style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4F46E5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
+              child: const Text('Close'),
             ),
           ],
         );
