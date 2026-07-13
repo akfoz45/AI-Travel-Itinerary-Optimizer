@@ -4,10 +4,8 @@ from rest_framework import status
 from datetime import time
 from django.db import transaction
 from rest_framework import viewsets
-from .models import Trip
-from .serializers import TripSerializer
 from rest_framework.permissions import IsAuthenticated
-
+from django.db.models import Q
 from .models import Trip, DayPlan, RouteItem
 from .serializers import (
     TripSerializer, 
@@ -18,13 +16,27 @@ from .serializers import (
     RouteItemSerializer,
     GenerateRouteSerializer,
     GenerateFullRouteSerializer,
-    )
+)
 from route_optimizer.services import generate_full_route_for_trip, generate_day_route_for_trip
 from route_optimizer.scoring import get_route_mode_weights
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+
+def notify_trip_update(trip_id):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'trip_{trip_id}',
+        {
+            'type': 'trip_update',
+            'action': 'route_updated'
+        }
+    )
+
 
 class TripListAPIView(APIView):
     def get(self, request):
-        trips = Trip.objects.filter(user=request.user)
+        trips = Trip.objects.filter(Q(user=request.user) | Q(collaborators=request.user)).distinct()
         serializer = TripSerializer(trips, many=True)
         return Response(serializer.data)
     
@@ -38,13 +50,11 @@ class TripListAPIView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
 class TripDetailAPIView(APIView):
     def get(self, request, trip_id):
         try:
-            trip = Trip.objects.get(
-                trip_id=trip_id,
-                user=request.user
-                )
+            trip = Trip.objects.get(Q(user=request.user) | Q(collaborators=request.user), trip_id=trip_id)
         except Trip.DoesNotExist:
             return Response(
                 {"error": "Trip not found."},
@@ -92,8 +102,9 @@ class TripDetailAPIView(APIView):
 
         if serializer.is_valid():
             updated_trip = serializer.save()
-
             response_serializer = TripSerializer(updated_trip)
+
+            notify_trip_update(updated_trip.trip_id)
 
             return Response(
                 response_serializer.data,
@@ -128,6 +139,7 @@ class DayPlanCreateAPIView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
 class RouteItemCreateAPIView(APIView):
     def post(self, request, plan_id):
         try:
@@ -150,6 +162,7 @@ class RouteItemCreateAPIView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
 class GenerateRouteAPIView(APIView):
     def post(self, request, trip_id):
         try:
@@ -208,6 +221,8 @@ class GenerateRouteAPIView(APIView):
             }
         )
 
+        notify_trip_update(trip.trip_id)
+
         return Response(
             {
                 "message": "Route generated successfully.",
@@ -219,6 +234,7 @@ class GenerateRouteAPIView(APIView):
             status=status.HTTP_201_CREATED
         )
     
+
 class GenerateFullRouteAPIView(APIView):
     def post(self, request, trip_id):
         try:
@@ -274,6 +290,8 @@ class GenerateFullRouteAPIView(APIView):
             }
         )
 
+        notify_trip_update(trip.trip_id)
+
         return Response(
             {
                 "message": "Full route generated successfully.",
@@ -290,6 +308,7 @@ class GenerateFullRouteAPIView(APIView):
             status=status.HTTP_201_CREATED
         )
     
+
 class ReorderRouteItemsAPIView(APIView):
     def put(self, request, plan_id):
         try:
@@ -316,6 +335,8 @@ class ReorderRouteItemsAPIView(APIView):
                 updated = RouteItem.objects.filter(pk=route_id).update(visit_order=index + 1)
                 updated_count += updated
         
+        notify_trip_update(day_plan.trip.trip_id)
+        
         return Response(
             {
                 "message": "Route items reordered successfully.",
@@ -324,16 +345,19 @@ class ReorderRouteItemsAPIView(APIView):
             status=status.HTTP_200_OK
         )
     
+
 class TripViewSet(viewsets.ModelViewSet):
     serializer_class = TripSerializer
 
     def get_queryset(self):
         return Trip.objects.select_related('user').prefetch_related('places').all()
     
+
 class JoinTripAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def psot(self, request):
+    # HATA DÜZELTİLDİ: psot -> post
+    def post(self, request):
         invite_code = request.data.get("invite_code")
 
         if not invite_code:
@@ -344,14 +368,16 @@ class JoinTripAPIView(APIView):
 
             if trip.user == request.user or request.user in trip.collaborators.all():
                 return Response(
-                    {"message": "You are already in this trip.", "trip_id": trip.id}, 
+                    {"message": "You are already in this trip.", "trip_id": trip.trip_id}, 
                     status=status.HTTP_200_OK
                 )
             
             trip.collaborators.add(request.user)
 
+            notify_trip_update(trip.trip_id)
+
             return Response(
-                {"message": "Successfully joined the trip!", "trip_id": trip.id}, 
+                {"message": "Successfully joined the trip!", "trip_id": trip.trip_id}, 
                 status=status.HTTP_200_OK
             )
         

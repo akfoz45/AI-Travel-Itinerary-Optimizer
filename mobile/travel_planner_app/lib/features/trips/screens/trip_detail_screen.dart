@@ -7,6 +7,10 @@ import 'edit_trip_screen.dart';
 import '../../places/widgets/favorite_button.dart'; 
 import 'day_map_screen.dart';
 import '../services/pdf_export_service.dart';
+import 'dart:convert';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import '../../../core/constants/api_constants.dart';
+import 'package:flutter/services.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final int tripId;
@@ -24,16 +28,52 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   final TripService _tripService = TripService();
   late Future<Trip> _tripFuture;
 
+  WebSocketChannel? _channel;
+
   @override
   void initState() {
     super.initState();
     _tripFuture = _tripService.getTripDetail(widget.tripId);
+    _connectWebSocket();
+  }
+
+  void _connectWebSocket() {
+    final wsUrl = Uri.parse('${ApiConstants.wsBaseUrl}/ws/trips/${widget.tripId}/');
+    _channel = WebSocketChannel.connect(wsUrl);
+
+    _channel!.stream.listen(
+      (message) {
+        final data = jsonDecode(message);
+        
+        if (data['action'] == 'route_updated') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('A collaborator updated the trip! Refreshing...'),
+                backgroundColor: Colors.blueAccent,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            _refreshTrip(); 
+          }
+        }
+      },
+      onError: (error) {
+        debugPrint('WebSocket Error: $error');
+      },
+    );
   }
 
   Future<void> _refreshTrip() async {
     setState(() {
       _tripFuture = _tripService.getTripDetail(widget.tripId);
     });
+  }
+
+  @override
+  void dispose() {
+    _channel?.sink.close(); 
+    super.dispose();
   }
 
   Future<void> _openGenerateRouteScreen(
@@ -554,6 +594,25 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 final trip = await _tripFuture;
                 if (!context.mounted) return;
                 
+                if (trip.inviteCode.isNotEmpty) {
+                  _showInviteDialog(trip.inviteCode);
+                }
+              },
+              icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 20),
+              tooltip: 'Invite Friends',
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              onPressed: () async {
+                final trip = await _tripFuture;
+                if (!context.mounted) return;
+                
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Generating PDF...')),
                 );
@@ -728,6 +787,70 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     await _openGenerateRouteScreen(
       refreshedTrip,
       skipExistingRouteWarning: true,
+    );
+  }
+
+  void _showInviteDialog(String code) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.group_add_rounded, color: Color(0xFF4F46E5)),
+              const SizedBox(width: 10),
+              Text('Invite Friends', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Share this code with your friends so they can join this trip. Once they join, you can plan your route together in real-time!',
+                style: TextStyle(fontSize: 14, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.3)),
+                ),
+                child: SelectableText(
+                  code,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: code));
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Invite code copied to clipboard!'), backgroundColor: Colors.green),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded, size: 18, color: Colors.white),
+              label: const Text('Copy Code', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4F46E5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

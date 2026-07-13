@@ -136,4 +136,16 @@ class TripService {
       throw Exception(response['error']);
     }
   }
+
+  Future<void> joinTrip(String inviteCode) async {
+    final response = await _apiClient.post(
+      '${ApiConstants.trips}join/',
+      requiresAuth: true,
+      body: {'invite_code': inviteCode},
+    );
+    
+    if (response is Map<String, dynamic> && response.containsKey('error')) {
+      throw Exception(response['error']);
+    }
+  }
 }

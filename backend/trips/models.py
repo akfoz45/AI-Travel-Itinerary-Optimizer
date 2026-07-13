@@ -15,8 +15,8 @@ class Trip(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     is_pinned = models.BooleanField(default=False)
-    collaborators = models.ManyToManyField(User, related_name="shared_trips", blank=True)
-    invite_code = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    collaborators = models.ManyToManyField(User, related_name="shared_trips", blank=True, db_table="trip_collaborators")
+    invite_code = models.UUIDField(default=uuid.uuid4, editable=False)
 
     class Meta:
         managed = False

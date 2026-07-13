@@ -471,6 +471,11 @@ class _TripListScreenState extends State<TripListScreen> {
       appBar: AppBar(
         title: const Text('My Trips'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.group_add_rounded, size: 26),
+            tooltip: 'Join a Trip',
+            onPressed: _showJoinTripDialog,
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.account_circle, size: 28),
             onSelected: (String value) {
@@ -548,4 +553,111 @@ class _TripListScreenState extends State<TripListScreen> {
       ),
     );
   }
+
+  Future<void> _showJoinTripDialog() async {
+  final TextEditingController codeController = TextEditingController();
+
+  final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      bool isSubmitting = false;
+
+      return StatefulBuilder(
+        builder: (builderContext, setDialogState) {
+          return AlertDialog(
+            title: const Text('Join a Trip'),
+            content: TextField(
+              controller: codeController,
+              decoration: const InputDecoration(
+                hintText: 'Enter invite code',
+                prefixIcon: Icon(Icons.vpn_key_rounded),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () {
+                        Navigator.pop(dialogContext);
+                      },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        final inviteCode = codeController.text.trim();
+
+                        if (inviteCode.isEmpty) {
+                          scaffoldMessenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter an invite code.'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setDialogState(() {
+                          isSubmitting = true;
+                        });
+
+                        try {
+                          await _tripService.joinTrip(inviteCode);
+
+                          if (!dialogContext.mounted) return;
+
+                          Navigator.pop(dialogContext);
+
+                          scaffoldMessenger.showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Successfully joined the trip!',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+
+                          if (!mounted) return;
+                          await _refreshTrips();
+                        } catch (e) {
+                          if (!dialogContext.mounted) return;
+
+                          setDialogState(() {
+                            isSubmitting = false;
+                          });
+
+                          scaffoldMessenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                e
+                                    .toString()
+                                    .replaceAll('Exception: ', ''),
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Join'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  codeController.dispose();
+}
 }

@@ -3,6 +3,7 @@ class Trip {
   final String destination;
   final String startDate;
   final String endDate;
+  final String inviteCode;
   bool isPinned;
   final List<TripPreference> preferences;
   final List<Hotel> hotels;
@@ -13,6 +14,7 @@ class Trip {
     required this.destination,
     required this.startDate,
     required this.endDate,
+    this.inviteCode = '',
     this.isPinned = false,
     this.preferences = const [],
     this.hotels = const [],
@@ -25,6 +27,7 @@ class Trip {
       destination: json['destination'],
       startDate: json['start_date'],
       endDate: json['end_date'],
+      inviteCode: json['invite_code'] ?? '',
       isPinned: json['is_pinned'] ?? false,
       preferences: (json['preferences'] as List? ?? [])
           .map((item) => TripPreference.fromJson(item))
