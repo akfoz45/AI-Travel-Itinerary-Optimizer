@@ -247,6 +247,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                   
                   try {
                     final url = Uri.parse('http://127.0.0.1:8000/api/trips/places/autocomplete/?q=$searchQuery&type=city');
+                    //final url = Uri.parse('http://192.168.1.111:8000/api/trips/places/autocomplete/?q=$searchQuery&type=city');
                     
                     final tokenStorage = TokenStorage();
                     final token = await tokenStorage.getAccessToken(); 
@@ -361,7 +362,8 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                   
                   try {
                     final url = Uri.parse('http://127.0.0.1:8000/api/trips/places/autocomplete/?q=$searchQuery&type=hotel');
-                    
+                    //final url = Uri.parse('http://192.168.1.111:8000/api/trips/places/autocomplete/?q=$searchQuery&type=hotel');
+
                     final tokenStorage = TokenStorage();
                     final token = await tokenStorage.getAccessToken(); 
 
