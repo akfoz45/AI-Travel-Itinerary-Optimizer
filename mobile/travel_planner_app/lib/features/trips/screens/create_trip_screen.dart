@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/trip_provider.dart';
+import '../../../core/storage/token_storage.dart';
 
 class CreateTripScreen extends StatefulWidget {
   const CreateTripScreen({super.key});
@@ -237,16 +238,92 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(
-                controller: _destinationController,
-                validator: (value) => value == null || value.isEmpty ? 'Destination is required' : null,
-                decoration: const InputDecoration(
-                  labelText: 'Destination',
-                  hintText: 'e.g. Paris, France', 
-                  prefixIcon: Icon(Icons.location_city),
-                ),
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) async {
+                  final searchQuery = textEditingValue.text;
+                  if (searchQuery.isEmpty || searchQuery.length < 3) {
+                    return const Iterable<String>.empty();
+                  }
+                  
+                  try {
+                    final url = Uri.parse('http://127.0.0.1:8000/api/trips/places/autocomplete/?q=$searchQuery&type=city');
+                    
+                    final tokenStorage = TokenStorage();
+                    final token = await tokenStorage.getAccessToken(); 
+
+                    final response = await http.get(url, headers: {
+                      'Content-Type': 'application/json',
+                      if (token != null) 'Authorization': 'Bearer $token', 
+                    });
+
+                    if (response.statusCode == 200) {
+                      final data = json.decode(response.body);
+                      final predictions = data['predictions'] as List;
+                      return predictions.map((p) => p.toString()).toList();
+                    }
+                  } catch (e) {
+                    debugPrint("API Error (City): $e");
+                  }
+                  return const Iterable<String>.empty();
+                },
+
+                onSelected: (String selectedValue) {
+                  _destinationController.text = selectedValue;
+                },
+
+                fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                  return TextFormField(
+                    controller: controller, 
+                    focusNode: focusNode,
+                    onEditingComplete: onEditingComplete,
+                    onChanged: (val) {
+                      _destinationController.text = val;
+                    },
+                    validator: (value) => value == null || value.isEmpty ? 'Destination is required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Destination (City)',
+                      hintText: 'e.g. İzmir, Turkey',
+                      prefixIcon: Icon(Icons.location_city_rounded),
+                    ),
+                  );
+                },
+
+                optionsViewBuilder: (context, onSelected, options) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 8,
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                      ),
+                      child: SizedBox(
+                        width: MediaQuery.sizeOf(context).width - 32, 
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          itemBuilder: (context, index) {
+                            final option = options.elementAt(index);
+                            return ListTile(
+                              leading: const Icon(Icons.location_on_rounded, color: Color(0xFF4F46E5)),
+                              title: Text(option, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+                              onTap: () {
+                                onSelected(option); 
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
+
               TextFormField(
                 controller: _dateRangeDisplayController,
                 readOnly: true,
@@ -275,14 +352,89 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               ),
               const SizedBox(height: 12),
               
-              TextFormField(
-                controller: _hotelNameController,
-                validator: (value) => value == null || value.isEmpty ? 'Hotel name is required' : null,
-                decoration: const InputDecoration(
-                  labelText: 'Hotel Name',
-                  hintText: 'e.g. Hilton Paris Opera',
-                  prefixIcon: Icon(Icons.hotel),
-                ),
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) async {
+                  final searchQuery = textEditingValue.text;
+                  if (searchQuery.isEmpty || searchQuery.length < 3) {
+                    return const Iterable<String>.empty();
+                  }
+                  
+                  try {
+                    final url = Uri.parse('http://127.0.0.1:8000/api/trips/places/autocomplete/?q=$searchQuery&type=hotel');
+                    
+                    final tokenStorage = TokenStorage();
+                    final token = await tokenStorage.getAccessToken(); 
+
+                    final response = await http.get(url, headers: {
+                      'Content-Type': 'application/json',
+                      if (token != null) 'Authorization': 'Bearer $token', 
+                    });
+
+                    if (response.statusCode == 200) {
+                      final data = json.decode(response.body);
+                      final predictions = data['predictions'] as List;
+                      return predictions.map((p) => p.toString()).toList();
+                    }
+                  } catch (e) {
+                    debugPrint("API Error (Hotel): $e");
+                  }
+                  return const Iterable<String>.empty();
+                },
+
+                onSelected: (String selectedValue) {
+                  _hotelNameController.text = selectedValue;
+                },
+
+                fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                  return TextFormField(
+                    controller: controller, 
+                    focusNode: focusNode,
+                    onEditingComplete: onEditingComplete,
+                    onChanged: (val) {
+                      _hotelNameController.text = val;
+                    },
+                    validator: (value) => value == null || value.isEmpty ? 'Hotel name is required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Hotel Name',
+                      hintText: 'e.g. Hilton Paris Opera',
+                      prefixIcon: Icon(Icons.hotel_rounded),
+                    ),
+                  );
+                },
+
+                optionsViewBuilder: (context, onSelected, options) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 8,
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                      ),
+                      child: SizedBox(
+                        width: MediaQuery.sizeOf(context).width - 32, 
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          itemBuilder: (context, index) {
+                            final option = options.elementAt(index);
+                            return ListTile(
+                              leading: const Icon(Icons.hotel_rounded, color: Color(0xFF4F46E5)),
+                              title: Text(option, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+                              onTap: () {
+                                onSelected(option); 
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
               
               const SizedBox(height: 24),

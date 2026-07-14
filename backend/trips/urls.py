@@ -10,6 +10,7 @@ from .views import (
     JoinTripAPIView,
     LeaveTripAPIView,
     RemoveCollaboratorAPIView,
+    PlaceAutocompleteAPIView,
 )
 
 urlpatterns = [
@@ -23,4 +24,5 @@ urlpatterns = [
     path("join/", JoinTripAPIView.as_view(), name="join_trip"),
     path("<int:trip_id>/leave/", LeaveTripAPIView.as_view(), name="leave-trip"),
     path("<int:trip_id>/collaborators/<str:username>/", RemoveCollaboratorAPIView.as_view(), name="remove-collaborator"),
+    path("places/autocomplete/", PlaceAutocompleteAPIView.as_view(), name="place-autocomplete")
 ]

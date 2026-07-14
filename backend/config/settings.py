@@ -16,8 +16,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
-GEOAPIFY_BASE_URL = "https://api.geoapify.com"
+#GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
+#GEOAPIFY_BASE_URL = "https://api.geoapify.com"
 
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 WEATHER_BASE_URL = os.getenv(

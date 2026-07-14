@@ -928,6 +928,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     ),
                     const SizedBox(height: 24),
 
+                    // --- DAVET KODU GÖSTERİMİ ---
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -939,17 +940,23 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                         ),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.vpn_key_rounded, size: 18, color: primaryColor),
                           const SizedBox(width: 10),
-                          SelectableText(
-                            activeCode,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                              color: isDark ? Colors.white : Colors.black87,
+                          // YENİ KISIM: Yatay kaydırma ve tek satır sabitlemesi
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal, // Sağa-sola kaydırma
+                              child: SelectableText(
+                                activeCode,
+                                maxLines: 1, // Alt satıra taşmasını engeller
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
                             ),
                           ),
                         ],

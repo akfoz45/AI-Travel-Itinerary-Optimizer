@@ -1,3 +1,4 @@
+import requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -6,6 +7,7 @@ from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from django.conf import settings
 from .models import Trip, DayPlan, RouteItem, TripCollaborator
 from .serializers import (
     TripSerializer, 
@@ -379,7 +381,10 @@ class JoinTripAPIView(APIView):
             return Response({"error": "Invalid invite code."}, status=status.HTTP_404_NOT_FOUND)
 
         if trip.user == request.user:
-            return Response({"message": "You are the owner of this trip.", "trip_id": trip.trip_id}, status=status.HTTP_200_OK)
+            return Response(
+                {"error": "You are already the owner of this trip. You cannot join this trip."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         collaborator, created = TripCollaborator.objects.update_or_create(
             trip=trip, user=request.user,
@@ -435,3 +440,41 @@ class RemoveCollaboratorAPIView(APIView):
             return Response({"message": f"{username} removed from the trip."}, status=status.HTTP_200_OK)
             
         return Response({"error": "User is not in this trip."}, status=status.HTTP_404_NOT_FOUND)
+    
+class PlaceAutocompleteAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get("q", "")
+        place_type = request.query_params.get("type", "city")
+
+        if not query or len(query) < 3:
+            return Response({"predictions": []}, status=status.HTTP_200_OK)
+        
+        api_key = getattr(settings, "GOOGLE_PLACES_API_KEY", None)
+        if not api_key:
+            return Response(
+                {"error": "The Google Places API key has not been set."}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        types_param = "(cities)" if place_type == "city" else "lodging"
+
+        url = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+        params = {
+            'input': query,
+            'types': types_param,
+            'key': api_key,
+            'language': 'en'
+        }
+
+        try:
+            response = requests.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                predictions = [p["description"] for p in data.get("predictions", [])]
+                return Response({"predictions": predictions}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Could not retrieve data from Google API."}, status=response.status_code)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
