@@ -76,7 +76,8 @@ INSTALLED_APPS = [
     "places",
     "route_optimizer",
     "api",
-    "weather"
+    "weather",
+    "flights"
 ]
 
 MIDDLEWARE = [
