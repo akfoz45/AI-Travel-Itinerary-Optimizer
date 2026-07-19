@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/flight_prediction_service.dart';
 import '../models/trip_model.dart'; 
+import 'dart:math' as math;
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class FlightPricePredictor extends StatefulWidget {
   final Trip trip; 
@@ -63,12 +66,42 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
     });
 
     try {
+      Position? currentPosition = await _getCurrentLocation();
+      
+      if (currentPosition == null) {
+        setState(() {
+          _errorMessage = 'Location could not be obtained. Location permission is required for flight duration calculation.';
+          _isLoading = false;
+        });
+        return; 
+      }
+
+      double startLat = currentPosition.latitude;
+      double startLng = currentPosition.longitude; 
+
+      double destLat = 51.4700; 
+      double destLng = -0.4543;
+      
+      try {
+        List<Location> locations = await locationFromAddress(widget.trip.destination);
+        if (locations.isNotEmpty) {
+          destLat = locations.first.latitude;
+          destLng = locations.first.longitude;
+        }
+      } catch (e) {
+        debugPrint("Target city coordinates could not be found: $e");
+      }
+
+      double calculatedDuration = _calculateFlightDuration(
+         startLat, startLng, destLat, destLng, 
+      );
+
       final price = await _predictionService.predictPrice(
         departureTime: _departureTime,
         arrivalTime: _calculateArrivalTime(_departureTime), 
         flightClass: _flightClass,
         stops: _stops,
-        duration: 2.5, 
+        duration: calculatedDuration, 
         daysLeft: _calculateDaysLeft(), 
       );
 
@@ -189,7 +222,7 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
 
   Widget _buildDropdown(String label, List<String> items, String value, ValueChanged<String?> onChanged) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value, 
       items: items.map((e) => DropdownMenuItem(value: e, child: Text(e.replaceAll('_', ' ')))).toList(),
       onChanged: onChanged,
       decoration: InputDecoration(
@@ -199,4 +232,48 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
       ),
     );
   }
+
+  double _calculateFlightDuration(double startLat, double startLng, double endLat, double endLng) {
+    const double R = 6371.0; // Dünya'nın yarıçapı (km)
+    
+    double dLat = (endLat - startLat) * math.pi / 180.0;
+    double dLng = (endLng - startLng) * math.pi / 180.0;
+    
+    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+               math.cos(startLat * math.pi / 180.0) * math.cos(endLat * math.pi / 180.0) *
+               math.sin(dLng / 2) * math.sin(dLng / 2);
+               
+    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    double distanceKm = R * c; 
+    
+    const double planeSpeedKmH = 800.0;
+    double durationHours = (distanceKm / planeSpeedKmH) + 0.75;
+    
+    return double.parse(durationHours.toStringAsFixed(2));
+  }
+
+  Future<Position?> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return null; 
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return null; 
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      return null; 
+    } 
+
+    return await Geolocator.getCurrentPosition();
+  }
 }
+

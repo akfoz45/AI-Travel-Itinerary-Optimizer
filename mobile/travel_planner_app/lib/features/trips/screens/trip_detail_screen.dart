@@ -828,7 +828,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             final isDark = Theme.of(context).brightness == Brightness.dark;
-            final primaryColor = const Color(0xFF4F46E5);
+            const primaryColor = Color(0xFF4F46E5);
             final activeCode = selectedRole == 'editor' ? trip.inviteCode : trip.viewerInviteCode;
 
             return Dialog(
@@ -857,7 +857,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                         color: primaryColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.share_rounded, color: primaryColor, size: 32),
+                      child: const Icon(Icons.share_rounded, color: primaryColor, size: 32),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -955,7 +955,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.vpn_key_rounded, size: 18, color: primaryColor),
+                          const Icon(Icons.vpn_key_rounded, size: 18, color: primaryColor),
                           const SizedBox(width: 10),
                           Expanded(
                             child: SingleChildScrollView(
