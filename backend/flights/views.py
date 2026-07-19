@@ -8,9 +8,9 @@ from .services import FlightPricePredictionService
 class PredictFlightPriceAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def pst(self, request):
+    def post(self, request):
         try:
-            depature_time = request.data.get("depature_time")
+            departure_time = request.data.get("departure_time")
             arrival_time = request.data.get("arrival_time")
             flight_class = request.data.get("class")
             stops = request.data.get("stops")
@@ -18,7 +18,7 @@ class PredictFlightPriceAPIView(APIView):
             days_left = request.data.get("days_left")
 
 
-            if not all([depature_time, arrival_time, flight_class, stops, duration, days_left]):
+            if not all([departure_time, arrival_time, flight_class, stops, duration, days_left]):
                 return Response(
                     {"error": "You submitted incomplete parameters. Please fill in all fields."},
                     status=status.HTTP_400_BAD_REQUEST
@@ -26,7 +26,7 @@ class PredictFlightPriceAPIView(APIView):
             
             service = FlightPricePredictionService()
             estimated_price = service.predict_price(
-                depature_time, arrival_time, flight_class, stops, duration, days_left
+                departure_time, arrival_time, flight_class, stops, duration, days_left
             )
             
             return Response({

@@ -13,9 +13,9 @@ class FlightPricePredictionService:
         with open(model_path, "rb") as file:
             self.model = pickle.load(file)
 
-    def predict_price(self, depature_time, arrival_time, flight_class, stops, duration, days_left):
+    def predict_price(self, departure_time, arrival_time, flight_class, stops, duration, days_left):
         input_data = pd.DataFrame([{
-            "depture_time": depature_time, 
+            "departure_time": departure_time, 
             "arrival_time": arrival_time, 
             "class": flight_class,
             "stops": stops,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../widgets/flight_price_predictor.dart';
 import '../models/trip_model.dart';
 import '../services/trip_service.dart';
 import '../../routes/screens/generate_full_route_screen.dart';
@@ -244,21 +244,36 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () => _openEditTripScreen(trip),
-              icon: const Icon(Icons.edit, size: 18),
-              label: const Text('Edit Trip'),
+              icon: const Icon(Icons.edit, size: 16),
+              label: const Text('Edit', style: TextStyle(fontSize: 13)),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () => _openGenerateRouteScreen(trip),
-              icon: const Icon(Icons.route, size: 18),
-              label: const Text('Route'),
+              icon: const Icon(Icons.route, size: 16),
+              label: const Text('Route', style: TextStyle(fontSize: 13)),
               style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {
+                FlightPricePredictor.show(context, trip);
+              },
+              icon: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+              label: const Text('AI Price', style: TextStyle(fontSize: 13, color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0EA5E9),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -928,7 +943,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // --- DAVET KODU GÖSTERİMİ ---
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -943,13 +957,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                         children: [
                           Icon(Icons.vpn_key_rounded, size: 18, color: primaryColor),
                           const SizedBox(width: 10),
-                          // YENİ KISIM: Yatay kaydırma ve tek satır sabitlemesi
                           Expanded(
                             child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal, // Sağa-sola kaydırma
+                              scrollDirection: Axis.horizontal, 
                               child: SelectableText(
                                 activeCode,
-                                maxLines: 1, // Alt satıra taşmasını engeller
+                                maxLines: 1, 
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,

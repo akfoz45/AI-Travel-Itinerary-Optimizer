@@ -1,5 +1,6 @@
 from django.urls import path, include
+from .views import PredictFlightPriceAPIView
 
 urlpatterns = [
-    path("flights/", include("flights.urls")),
+    path("predict/", PredictFlightPriceAPIView.as_view(), name="predict-flight-price"),
 ]
