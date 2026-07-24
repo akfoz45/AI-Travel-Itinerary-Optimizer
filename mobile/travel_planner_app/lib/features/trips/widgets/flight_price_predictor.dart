@@ -94,6 +94,16 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
         debugPrint("Target city coordinates could not be found: $e");
       }
 
+      double distanceInMeters = Geolocator.distanceBetween(startLat, startLng, destLat, destLng);
+      
+      if (distanceInMeters < 100000) { 
+        setState(() {
+          _errorMessage = "You are very close to your destination right now. There are no flights available for this distance.";
+          _isLoading = false;
+        });
+        return;
+      }
+
       double calculatedDuration = _calculateFlightDuration(
          startLat, startLng, destLat, destLng, 
       );
@@ -124,9 +134,8 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    
     double inrToTryRate = 0.49; 
-    double priceInTry = _estimatedPrice! * inrToTryRate;
 
     return Container(
       padding: EdgeInsets.only(
@@ -196,7 +205,7 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
                       const Text('Estimated Ticket Price', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4F46E5))),
                       const SizedBox(height: 8),
                       Text(
-                        '₺${priceInTry.toStringAsFixed(2)}',
+                        '₺${(_estimatedPrice! * inrToTryRate).toStringAsFixed(2)}',
                         style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
                       ),
                     ],
@@ -281,4 +290,3 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
     return await Geolocator.getCurrentPosition();
   }
 }
-
