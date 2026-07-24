@@ -25,7 +25,7 @@ This application empowers travelers to:
 
 | My Trips | AI Route Generator | Day Map View | AI Flight Price |
 | :---: | :---: | :---: | :---: |
-| <img src="docs/screenshots/trip_list_screen.png" width="220"> | <img src="docs/screenshots/route_generatorpng" width="220"> | <img src="docs/screenshots/day_map_screen.png" width="220"> | <img src="docs/screenshots/price_predictor.png" width="220"> |
+| <img src="docs/screenshots/trip_list_screen.png" width="220"> | <img src="docs/screenshots/route_generator.png" width="220"> | <img src="docs/screenshots/day_map_screen.png" width="220"> | <img src="docs/screenshots/price_predictor.png" width="220"> |
 
 ---
 
