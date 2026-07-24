@@ -1,179 +1,210 @@
 # AI Travel Itinerary Optimizer
 
-AI Travel Itinerary Optimizer is a full-stack travel planning application that helps users create personalized multi-day travel routes based on destination, travel dates, hotel location, user preferences, weather conditions, and route optimization logic.
+AI Travel Itinerary Optimizer is a full-stack, intelligent travel planning application that helps users create highly personalized multi-day travel routes. It considers destination, travel dates, hotel location, user preferences, weather conditions, dynamic distances, and autonomous flight price predictions to generate the optimal travel experience.
 
-The project consists of a Django REST backend and a Flutter mobile application.
-
----
-
-## Project Overview
-
-This application allows users to:
-
-- Register and log in
-- Create trips
-- Select travel preferences
-- Add hotel information
-- Generate optimized daily travel routes
-- View route results day by day
-- Edit or delete trips
-- Regenerate routes when trip details change
-
-The route generation system uses place data, weather data, scoring logic, and graph-based route optimization to generate daily itineraries.
+The project is engineered with a powerful Django REST backend, utilizing MySQL and LightGBM for machine learning, seamlessly integrated with a modern Flutter mobile application.
 
 ---
 
-## Main Features
+# Project Overview
 
-### Authentication
+This application empowers travelers to:
 
-- User registration
-- User login
-- JWT-based authentication
-- Token storage on mobile
-- Splash screen authentication check
-- Logout
+- Register and manage secure accounts with JWT authentication.
+- Create and organize detailed upcoming trips.
+- Select from diverse travel preferences (e.g., Nature, History, Museum, Beach).
+- Geocode hotel information automatically.
+- Generate optimized daily travel routes autonomously using graph-based algorithms.
+- Predict flight prices dynamically using an AI model (LightGBM).
+- Export complete travel itineraries as professionally formatted PDF documents.
+- Edit or regenerate routes whenever trip information changes.
 
-### Trip Management
+---
 
-- Create trip
-- Edit trip
-- Delete trip
-- List user trips
-- View trip detail
-- Add destination
-- Select start and end dates
-- Select travel preferences with chips
-- Add hotel information
+# Core Features
 
-### Route Generation
+## 🔐 Authentication & Security
 
-- Generate full multi-day route
-- Use trip preferences as default route categories
-- Allow category customization before route generation
-- Select start place
-- Select start and end time with time picker
-- Select route mode:
+- Secure user registration and login.
+- JWT authentication using Django Simple JWT.
+- Secure token storage on mobile using `flutter_secure_storage`.
+- Environment variable management using `python-dotenv` and `flutter_dotenv`.
+
+---
+
+## 🧳 Trip Management
+
+- Full CRUD operations for trips.
+- Hotel and destination autocomplete using Geoapify.
+- Automatic hotel geocoding.
+- Date range picker for travel dates.
+- Edit existing trips.
+- Automatic route regeneration after trip updates.
+
+---
+
+## 🧠 AI Route Generation & Optimization
+
+- Graph-based itinerary optimization.
+- Recommendation scoring based on user preferences.
+- Daily time-window optimization.
+- Multiple travel pace modes:
+  - Relaxed
   - Balanced
-  - Shortest
-  - Recommended
-- Regenerate existing routes
-- Automatically clear old route data before generating a new route
-
-### Route Result
-
-- Route summary
-- Daily route plans
-- Place order
-- Arrival and departure times
-- Recommendation score
-- Weather note
-- One-click return to Trip Detail
-
-### Weather-Aware Recommendation
-
-- Weather forecast integration
-- Weather-aware scoring
-- Route generation fallback when weather data is unavailable
+  - Discovery
+- Weather-aware route planning using Open-Meteo API.
+- Indoor attractions prioritized during rainy weather.
+- Drag-and-drop daily itinerary reordering.
 
 ---
 
-## Tech Stack
+## ✈️ AI Flight Price Prediction
 
-### Backend
+- Current location detection using GPS.
+- Destination geocoding.
+- Distance calculation using the Haversine Formula.
+- Flight price prediction using a trained LightGBM regression model.
+- Prediction based on:
+  - Distance
+  - Days before departure
+  - Flight class
+  - Number of stops
+
+---
+
+## 🗺 Maps & Visualization
+
+- Interactive maps using `flutter_map`.
+- Route visualization using the OSRM Routing API.
+- Place markers.
+- Daily travel path visualization.
+
+---
+
+## 📄 PDF Export
+
+- Export complete travel itineraries.
+- Weather information included.
+- Daily schedules included.
+- Share generated PDF using the native sharing menu.
+
+---
+
+# Tech Stack
+
+## Backend
 
 - Python
 - Django
 - Django REST Framework
-- Simple JWT
 - MySQL
-- django-cors-headers
+- LightGBM
+- Scikit-learn
+- Pandas
+- Simple JWT
 - python-dotenv
-
-### Mobile
-
-- Flutter
-- Dart
-- HTTP package
-- Flutter Secure Storage
-- Intl
-
-### External APIs
-
-- Geoapify Places API
-- Open-Meteo Weather API
-
-### Core Concepts
-
-- REST API design
-- JWT authentication
-- Graph-based route optimization
-- Recommendation scoring
-- Weather-aware itinerary planning
-- Mobile/backend integration
+- django-cors-headers
 
 ---
 
-## Project Structure
+## Mobile
+
+- Flutter
+- Dart
+- Provider
+- flutter_secure_storage
+- shared_preferences
+- flutter_map
+- geolocator
+- geocoding
+- latlong2
+- pdf
+- printing
+- http
+
+---
+
+## External APIs
+
+- Geoapify Places API
+- Open-Meteo Weather API
+- OSRM Routing API
+- Nominatim OpenStreetMap
+
+---
+
+# Project Structure
 
 ```text
 Travel_App
-│
 ├── backend
 │   ├── accounts
-│   ├── trips
+│   ├── api
+│   ├── config
+│   ├── external_services
+│   ├── flights
+│   ├── ml_model
 │   ├── places
 │   ├── route_optimizer
-│   ├── core
+│   ├── trips
+│   ├── weather
 │   ├── manage.py
 │   └── requirements.txt
 │
 ├── mobile
 │   └── travel_planner_app
+│       ├── android
+│       ├── ios
 │       ├── lib
 │       │   ├── core
 │       │   ├── features
-│       │   │   ├── auth
-│       │   │   ├── trips
-│       │   │   └── routes
 │       │   └── main.dart
 │       └── pubspec.yaml
 │
-├── docs
-│   ├── api
-│   └── roadmap
-│
-└── README.md
+└── docs
+    ├── algorithms
+    ├── api
+    ├── architecture
+    ├── database
+    └── roadmap
 ```
 
 ---
 
-## Backend Setup
+# Setup Instructions
 
-### 1. Create and activate virtual environment
+## 1. Backend Setup
+
+### Create a Virtual Environment
 
 ```bash
 python -m venv .venv
 ```
 
-Windows PowerShell:
+### Activate Virtual Environment
+
+Windows
 
 ```bash
 .venv\Scripts\activate
 ```
 
-### 2. Install dependencies
+macOS/Linux
+
+```bash
+source .venv/bin/activate
+```
+
+### Install Dependencies
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### 3. Create `.env` file
+### Configure Environment Variables
 
-Create a `.env` file inside the backend directory.
-
-Example:
+Create a `.env` file inside the **backend** directory.
 
 ```env
 SECRET_KEY=your-django-secret-key
@@ -185,233 +216,194 @@ DB_PASSWORD=your_mysql_password
 DB_HOST=localhost
 DB_PORT=3306
 
+ALLOWED_HOSTS=127.0.0.1,localhost
+
 GEOAPIFY_API_KEY=your_geoapify_api_key
 ```
 
-### 4. Run migrations
+### Run Migrations
 
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-### 5. Start backend server
+### Start the Backend
 
 ```bash
 python manage.py runserver
 ```
 
-Backend runs on:
+Backend URL:
 
-```text
+```
 http://127.0.0.1:8000
 ```
 
 ---
 
-## Flutter Mobile Setup
+## 2. Flutter Mobile Setup
 
-### 1. Go to Flutter app directory
+Navigate to the Flutter project.
 
 ```bash
 cd mobile/travel_planner_app
 ```
 
-### 2. Install dependencies
+Install packages.
 
 ```bash
 flutter pub get
 ```
 
-### 3. Configure API base URL
+---
+
+### Configure API Base URL
 
 Open:
 
-```text
+```
 lib/core/constants/api_constants.dart
 ```
 
-For Flutter Web / Chrome:
+Android Emulator
 
 ```dart
-static const String baseUrl = 'http://127.0.0.1:8000';
+http://10.0.2.2:8000
 ```
 
-For Android Emulator:
+Chrome / iOS Simulator
 
 ```dart
-static const String baseUrl = 'http://10.0.2.2:8000';
+http://127.0.0.1:8000
 ```
 
-### 4. Run Flutter app
+Physical Android Device (same Wi-Fi)
+
+```dart
+http://YOUR_COMPUTER_IP:8000
+```
+
+---
+
+### Flutter Environment Variables
+
+If required, create a `.env` file inside:
+
+```
+mobile/travel_planner_app/
+```
+
+---
+
+### Run Flutter
 
 ```bash
 flutter run
 ```
 
-### 5. Analyze project
+---
 
-```bash
-flutter analyze
-```
+# Test Scenario
 
-Expected result:
+### 1. Register or Login
 
-```text
-No issues found!
-```
+Create a new account or login.
 
 ---
 
-## API Endpoints
+### 2. Create a Trip
 
-### Authentication
+Destination
 
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/auth/register/` | Register user |
-| POST | `/api/auth/token/` | Login and get JWT tokens |
-| POST | `/api/auth/token/refresh/` | Refresh access token |
+```
+Paris, France
+```
 
-### Trips
+Dates
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/trips/` | List user trips |
-| POST | `/api/trips/` | Create trip |
-| GET | `/api/trips/{trip_id}/` | Get trip detail |
-| PUT | `/api/trips/{trip_id}/` | Update trip |
-| DELETE | `/api/trips/{trip_id}/` | Delete trip |
+```
+3 days next week
+```
 
-### Route Generation
+Hotel
 
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/trips/{trip_id}/generate-route/` | Generate route for one day |
-| POST | `/api/trips/{trip_id}/generate-full-route/` | Generate full multi-day route |
+```
+Hilton Paris Opera
+```
 
----
+Preferences
 
-## Example Trip Creation Request
-
-```json
-{
-  "destination": "Kotor, Montenegro",
-  "start_date": "2026-07-01",
-  "end_date": "2026-07-03",
-  "preferences": ["nature", "history", "museum"],
-  "hotel": {
-    "name": "Hotel Kotor Example",
-    "latitude": 42.425,
-    "longitude": 18.771,
-    "rating": 4.5
-  }
-}
+```
+History
+Museum
+Cafe
 ```
 
 ---
 
-## Example Route Generation Request
+### 3. Open Trip Detail
 
-```json
-{
-  "categories": ["nature", "history", "museum"],
-  "start_time": "09:00",
-  "end_time": "18:00",
-  "route_mode": "recommended",
-  "start_place": "Kotor Old Town"
-}
+Select the created trip.
+
+---
+
+### 4. Generate Route
+
+Choose:
+
+```
+Discovery
 ```
 
----
-
-## Current Mobile Screens
-
-- Splash Screen
-- Login Screen
-- Register Screen
-- My Trips Screen
-- Create Trip Screen
-- Edit Trip Screen
-- Trip Detail Screen
-- Generate Route Screen
-- Route Result Screen
+Generate the itinerary.
 
 ---
 
-## Route Generation Logic
+### 5. View Map
 
-The route generation flow:
+Open a generated day and press:
 
-1. User creates a trip.
-2. User selects preferences.
-3. User adds hotel information.
-4. User opens Trip Detail.
-5. User generates route.
-6. Backend fetches relevant places.
-7. Backend applies recommendation scoring.
-8. Backend uses weather context when available.
-9. Backend builds a weighted graph.
-10. Backend generates daily route plans.
-11. Flutter displays route summary and daily itinerary.
-
-If a trip already has a route, regenerating a route replaces the existing route.
-
----
-
-## Known Limitations
-
-- Hotel recommendation is not automatic yet.
-- Map visualization is not implemented yet.
-- Route generation depends on available place data.
-- Weather forecast may be unavailable for some cases.
-- Current recommendation logic is rule-based.
-- Offline support is not implemented.
-
----
-
-## Future Improvements
-
-- Interactive map view
-- Automatic hotel search
-- Restaurant recommendation
-- More advanced AI-based itinerary generation
-- Budget-aware trip planning
-- Real-time traffic support
-- Collaborative trip planning
-- Saved favorite places
-- Push notifications
-- Deployment to cloud
-- Mobile app release build
-
----
-
-## Test Scenario
-
-Initial test scenario:
-
-```text
-Destination: Kotor, Montenegro
-Duration: 3 days
-Preferences: nature, history, museum
-Hotel: Hotel Kotor Example
-Start place: Kotor Old Town
-Route mode: recommended
+```
+View on Map
 ```
 
-Expected output:
-
-- Multi-day route plan
-- Daily itinerary
-- Ordered places
-- Arrival and departure times
-- Recommendation scores
-- Weather-aware notes
+The application displays the optimized route using OSRM.
 
 ---
 
-## Author
+### 6. AI Flight Price
 
-Akif Özdemir
+Press:
 
-GitHub: `akfoz45`
+```
+AI Price
+```
+
+The application will:
+
+- Get your GPS location
+- Calculate the travel distance
+- Predict the flight price using the LightGBM model
+
+---
+
+### 7. Export PDF
+
+Press the Share button.
+
+The application generates a travel itinerary PDF.
+
+---
+
+# Author
+
+**Akif Özdemir**
+
+**GitHub**
+
+https://github.com/akfoz45
+
+**LinkedIn**
+
+https://www.linkedin.com/in/akfozdemir/
