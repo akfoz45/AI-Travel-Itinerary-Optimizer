@@ -651,7 +651,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               icon: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
               tooltip: 'Export & Share',
             ),
-          ),
+          ), 
           
           Container(
             margin: const EdgeInsets.only(right: 12),

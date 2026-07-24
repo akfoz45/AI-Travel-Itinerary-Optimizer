@@ -26,6 +26,8 @@ class FlightPricePredictor extends StatefulWidget {
 class _FlightPricePredictorState extends State<FlightPricePredictor> {
   final FlightPredictionService _predictionService = FlightPredictionService();
 
+  final Geocoding _geocoding = Geocoding();
+
   String _departureTime = 'Morning';
   String _flightClass = 'Economy';
   String _stops = 'zero';
@@ -83,7 +85,7 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
       double destLng = -0.4543;
       
       try {
-        List<Location> locations = await locationFromAddress(widget.trip.destination);
+        List<Location> locations = await _geocoding.locationFromAddress(widget.trip.destination);
         if (locations.isNotEmpty) {
           destLat = locations.first.latitude;
           destLng = locations.first.longitude;
@@ -122,6 +124,9 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    double inrToTryRate = 0.49; 
+    double priceInTry = _estimatedPrice! * inrToTryRate;
 
     return Container(
       padding: EdgeInsets.only(
@@ -191,7 +196,7 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
                       const Text('Estimated Ticket Price', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4F46E5))),
                       const SizedBox(height: 8),
                       Text(
-                        '₹${_estimatedPrice!.toStringAsFixed(2)}',
+                        '₺${priceInTry.toStringAsFixed(2)}',
                         style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF4F46E5)),
                       ),
                     ],
@@ -234,7 +239,7 @@ class _FlightPricePredictorState extends State<FlightPricePredictor> {
   }
 
   double _calculateFlightDuration(double startLat, double startLng, double endLat, double endLng) {
-    const double R = 6371.0; // Dünya'nın yarıçapı (km)
+    const double R = 6371.0; 
     
     double dLat = (endLat - startLat) * math.pi / 180.0;
     double dLng = (endLng - startLng) * math.pi / 180.0;
